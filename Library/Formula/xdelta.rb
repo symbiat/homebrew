@@ -1,13 +1,13 @@
 require 'formula'
 
 class Xdelta < Formula
-  url 'http://xdelta.googlecode.com/files/xdelta3.0.0.tar.gz'
   homepage 'http://xdelta.org'
-  sha1 'c9e54fd8dbd9f2e77ead17be9d00e0b8af109024'
+  url 'https://xdelta.googlecode.com/files/xdelta3-3.0.6.tar.gz'
+  sha1 'a468ce0efb0cd1c7dbdff637731e9ac6470437c6'
 
   def install
-    system "make"
-    bin.install "xdelta3"
-    man1.install "xdelta3.1"
+    system "./configure", "--disable-dependency-tracking",
+                          "--prefix=#{prefix}"
+    system "make install"
   end
 end

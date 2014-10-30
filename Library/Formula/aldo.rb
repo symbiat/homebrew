@@ -1,19 +1,15 @@
 require 'formula'
 
 class Aldo < Formula
-  url 'http://savannah.nongnu.org/download/aldo/aldo-0.7.6.tar.bz2'
   homepage 'http://www.nongnu.org/aldo/'
-  md5 'c870b62fe50f71eb6c7ddcd5d666d2e2'
+  url 'http://savannah.nongnu.org/download/aldo/aldo-0.7.7.tar.bz2'
+  sha1 'c37589f8cb0855d33814b7462b3e5ded21caa8ea'
 
   depends_on 'libao'
 
-  def patches
-    # Fixes crash due to added field in libao-1.0.
-    # See:
-    #   http://calypso.tux.org/pipermail/novalug/2011-March/027843.html
-    #   https://savannah.nongnu.org/patch/index.php?7716
-    DATA
-  end
+  # Reported upstream:
+  # http://savannah.nongnu.org/bugs/index.php?42127
+  patch :DATA
 
   def install
     system "./configure", "--disable-dependency-tracking", "--prefix=#{prefix}"
@@ -22,28 +18,29 @@ class Aldo < Formula
 end
 
 __END__
-diff --git a/src/audioworkspace.cc b/src/audioworkspace.cc
-index c8dd68a..d786e04 100644
---- a/src/audioworkspace.cc
-+++ b/src/audioworkspace.cc
-@@ -31,6 +31,7 @@ Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007 Giuseppe "denever" Martin
- #include <cmath>
- #include <iostream>
- #include <limits>
-+#include <string.h>
-     
- using namespace std;
- using namespace libaudiostream;
-@@ -104,10 +105,12 @@ oastream AudioWorkSpace::create_output_stream()
- {
-     ao_sample_format format;
-     
-+    memset(&format, '0', sizeof(format));
-     format.bits = m_bits;
-     format.channels = m_channels;
-     format.rate = m_sample_rate;
-     format.byte_format = AO_FMT_LITTLE;
-+    format.matrix = NULL;
+diff --git a/src/menu.cc b/src/menu.cc
+index 483b826..092d604 100644
+--- a/src/menu.cc
++++ b/src/menu.cc
+@@ -112,20 +112,17 @@ void Menu::add_item(id_type id, std::string c, Function2 f)
  
-     return oastream(format, m_device);
+ void Menu::add_item_at(unsigned int pos, id_type id, std::string c, Function1 f)
+ {
+-    IT it(&m_its[pos]);
+-    m_its.insert(it, Item(id,c,f) );
++    m_its.insert(m_its.begin()+pos, Item(id,c,f) );
+ }
+ 
+ void Menu::add_item_at(unsigned int pos, id_type id, std::string c, Function2 f)
+ {
+-    IT it(&m_its[pos]);
+-    m_its.insert(it, Item(id,c,f) );
++    m_its.insert(m_its.begin()+pos, Item(id,c,f) );
+ }
+ 
+ void Menu::delete_item_at(unsigned int pos)
+ {
+-    IT it(&m_its[pos]);
+-    m_its.erase(it);
++    m_its.erase(m_its.begin()+pos);
  }

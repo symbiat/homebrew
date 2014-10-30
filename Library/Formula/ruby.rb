@@ -1,76 +1,149 @@
-require 'formula'
+require "formula"
 
 class Ruby < Formula
-  url 'http://ftp.ruby-lang.org/pub/ruby/1.9/ruby-1.9.3-p125.tar.gz'
-  homepage 'http://www.ruby-lang.org/en/'
-  head 'http://svn.ruby-lang.org/repos/ruby/trunk/', :using => :svn
-  sha256 '8b3c035cf4f0ad6420f447d6a48e8817e5384d0504514939aeb156e251d44cce'
+  homepage "https://www.ruby-lang.org/"
+  url "http://cache.ruby-lang.org/pub/ruby/2.1/ruby-2.1.4.tar.bz2"
+  sha256 "f37f11a8c75ab9215bb9f61246ef98e0e57e1409f0872e5cf59033edcf5b8d2a"
 
-  depends_on 'readline'
-  depends_on 'libyaml'
+  bottle do
+    sha1 "c3c2fd70a2963266ba420e9a31cf3161350fc8d7" => :yosemite
+    sha1 "f424670929f81863cbf4209d7d096301fb271042" => :mavericks
+    sha1 "093abf8b650ba5edaaa9f228b7381ffc8aa079cb" => :mountain_lion
+  end
 
-  fails_with_llvm :build => 2326
+  head do
+    url "http://svn.ruby-lang.org/repos/ruby/trunk/"
+    depends_on "autoconf" => :build
+  end
 
-  # Stripping breaks dynamic linking
-  skip_clean :all
+  option :universal
+  option "with-suffix", "Suffix commands with '21'"
+  option "with-doc", "Install documentation"
+  option "with-tcltk", "Install with Tcl/Tk support"
 
-  def options
-    [
-      ["--with-suffix", "Add a 19 suffix to commands"],
-      ["--with-doc", "Install with the Ruby documentation"],
-      ["--universal", "Compile a universal binary (arch=x86_64,i386)"],
-    ]
+  depends_on "pkg-config" => :build
+  depends_on "readline" => :recommended
+  depends_on "gdbm" => :optional
+  depends_on "gmp" => :optional
+  depends_on "libffi" => :optional
+  depends_on "libyaml"
+  depends_on "openssl"
+  depends_on :x11 if build.with? "tcltk"
+
+  fails_with :llvm do
+    build 2326
   end
 
   def install
-    ruby_lib = HOMEBREW_PREFIX+"lib/ruby"
+    system "autoconf" if build.head?
 
-    if File.exist? ruby_lib and File.symlink? ruby_lib
-      opoo "#{ruby_lib} exists as a symlink"
-      puts <<-EOS.undent
-        The previous Ruby formula symlinked #{ruby_lib} into Ruby's Cellar.
+    args = %W[
+      --prefix=#{prefix} --enable-shared --disable-silent-rules
+      --with-sitedir=#{HOMEBREW_PREFIX}/lib/ruby/site_ruby
+      --with-vendordir=#{HOMEBREW_PREFIX}/lib/ruby/vendor_ruby
+    ]
 
-        This version creates this as a "real folder" in HOMEBREW_PREFIX
-        so that installed gems will survive between Ruby updates.
-
-        Please remove this existing symlink before continuing:
-          rm #{ruby_lib}
-      EOS
-      exit 1
+    if build.universal?
+      ENV.universal_binary
+      args << "--with-arch=#{Hardware::CPU.universal_archs.join(",")}"
     end
 
-    system "autoconf" unless File.exists? 'configure'
+    args << "--program-suffix=21" if build.with? "suffix"
+    args << "--with-out-ext=tk" if build.without? "tcltk"
+    args << "--disable-install-doc" if build.without? "doc"
+    args << "--disable-dtrace" unless MacOS::CLT.installed?
+    args << "--without-gmp" if build.without? "gmp"
 
-    args = ["--prefix=#{prefix}",
-            "--disable-debug",
-            "--disable-dependency-tracking",
-            "--enable-shared"]
+    # Reported upstream: https://bugs.ruby-lang.org/issues/10272
+    args << "--with-setjmp-type=setjmp" if MacOS.version == :lion
 
-    args << "--program-suffix=19" if ARGV.include? "--with-suffix"
-    args << "--with-arch=x86_64,i386" if ARGV.build_universal?
+    paths = [
+      Formula["libyaml"].opt_prefix,
+      Formula["openssl"].opt_prefix
+    ]
 
-    # Put gem, site and vendor folders in the HOMEBREW_PREFIX
+    %w[readline gdbm gmp libffi].each { |dep|
+      paths << Formula[dep].opt_prefix if build.with? dep
+    }
 
-    (ruby_lib+'site_ruby').mkpath
-    (ruby_lib+'vendor_ruby').mkpath
-    (ruby_lib+'gems').mkpath
-
-    (lib+'ruby').install_symlink ruby_lib+'site_ruby',
-                                 ruby_lib+'vendor_ruby',
-                                 ruby_lib+'gems'
+    args << "--with-opt-dir=#{paths.join(":")}"
 
     system "./configure", *args
     system "make"
-    system "make install"
-    system "make install-doc" if ARGV.include? "--with-doc"
+    system "make", "install"
 
+    # Customize rubygems to look/install in the global gem directory
+    # instead of in the Cellar, making gems last across reinstalls
+    (lib/"ruby/#{abi_version}/rubygems/defaults/operating_system.rb").write rubygems_config
   end
 
-  def caveats; <<-EOS.undent
-    NOTE: By default, gem installed binaries will be placed into:
-      #{bin}
+  def abi_version
+    "2.1.0"
+  end
 
-    You may want to add this to your PATH.
+  def rubygems_config; <<-EOS.undent
+    module Gem
+      class << self
+        alias :old_default_dir :default_dir
+        alias :old_default_path :default_path
+        alias :old_default_bindir :default_bindir
+      end
+
+      def self.default_dir
+        path = [
+          "#{HOMEBREW_PREFIX}",
+          "lib",
+          "ruby",
+          "gems",
+          "#{abi_version}"
+        ]
+
+        @default_dir ||= File.join(*path)
+      end
+
+      def self.private_dir
+        path = if defined? RUBY_FRAMEWORK_VERSION then
+                 [
+                   File.dirname(RbConfig::CONFIG['sitedir']),
+                   'Gems',
+                   RbConfig::CONFIG['ruby_version']
+                 ]
+               elsif RbConfig::CONFIG['rubylibprefix'] then
+                 [
+                  RbConfig::CONFIG['rubylibprefix'],
+                  'gems',
+                  RbConfig::CONFIG['ruby_version']
+                 ]
+               else
+                 [
+                   RbConfig::CONFIG['libdir'],
+                   ruby_engine,
+                   'gems',
+                   RbConfig::CONFIG['ruby_version']
+                 ]
+               end
+
+        @private_dir ||= File.join(*path)
+      end
+
+      def self.default_path
+        if Gem.user_home && File.exist?(Gem.user_home)
+          [user_dir, default_dir, private_dir]
+        else
+          [default_dir, private_dir]
+        end
+      end
+
+      def self.default_bindir
+        "#{HOMEBREW_PREFIX}/bin"
+      end
+    end
     EOS
+  end
+
+  test do
+    output = `#{bin}/ruby -e "puts 'hello'"`
+    assert_equal "hello\n", output
+    assert_equal 0, $?.exitstatus
   end
 end

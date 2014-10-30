@@ -1,26 +1,25 @@
-require 'formula'
+require "formula"
 
 class Libyaml < Formula
-  url 'http://pyyaml.org/download/libyaml/yaml-0.1.4.tar.gz'
-  homepage 'http://pyyaml.org/wiki/LibYAML'
-  md5 '36c852831d02cf90508c29852361d01b'
+  homepage "http://pyyaml.org/wiki/LibYAML"
+  url "http://pyyaml.org/download/libyaml/yaml-0.1.6.tar.gz"
+  mirror "https://mirrors.kernel.org/debian/pool/main/liby/libyaml/libyaml_0.1.6.orig.tar.gz"
+  sha1 "f3d404e11bec3c4efcddfd14c42d46f1aabe0b5d"
 
-  def options
-    [
-      ["--universal", "Build for both 32 & 64 bit Intel."],
-    ]
+  bottle do
+    cellar :any
+    revision 1
+    sha1 "1d30f0a8143ef4b66d4bbc07a739039ab216f2a2" => :yosemite
+    sha1 "59463ec0044fa00929d7bb272e8ed4aa202c57cf" => :mavericks
+    sha1 "6cf822fb1c5377243dfe458fb663800612a4b131" => :mountain_lion
   end
 
+  option :universal
+
   def install
-    args = ["--prefix=#{prefix}"]
+    ENV.universal_binary if build.universal?
 
-    if ARGV.build_universal?
-      ENV['CFLAGS'] = "-arch i386 -arch x86_64"
-      ENV['LDFLAGS'] = "-arch i386 -arch x86_64"
-      args << "--disable-dependency-tracking"
-    end
-
-    system './configure', *args
-    system "make install"
+    system "./configure", "--disable-dependency-tracking", "--prefix=#{prefix}"
+    system "make", "install"
   end
 end

@@ -1,29 +1,30 @@
-require 'formula'
+require "formula"
 
 class Fox < Formula
-  homepage 'http://www.fox-toolkit.org/'
-  url 'ftp://ftp.fox-toolkit.org/pub/fox-1.6.44.tar.gz'
-  md5 '6ccc8cbcfa6e4c8b6e4deeeb39c36434'
+  homepage "http://www.fox-toolkit.org/"
+  url "ftp://ftp.fox-toolkit.org/pub/fox-1.6.49.tar.gz"
+  sha1 "056a55ba7b4404af61d4256eafdf8fd0503c6fea"
 
   # Development and stable branches are incompatible
   devel do
-    url 'http://ftp.fox-toolkit.org/pub/fox-1.7.32.tar.gz'
-    md5 '1cf2607d15ffad5b664cf65bfcd249bc'
+    url "ftp://ftp.fox-toolkit.org/pub/fox-1.7.49.tar.gz"
+    sha1 "a787a1300ddaf0330bb6ba656deda248d6e44f7a"
   end
 
-  fails_with_llvm "Inline asm errors during build" if ARGV.build_devel?
+  depends_on :x11
+  depends_on "freetype"
+  depends_on "libpng"
+  depends_on "jpeg"
+  depends_on "libtiff"
 
   def install
-    ENV.x11
-
-    # Yep, won't find freetype unless this is all set.
-    ENV.append "CFLAGS", "-I/usr/X11/include/freetype2"
-    ENV.append "CPPFLAGS", "-I/usr/X11/include/freetype2"
-    ENV.append "CXXFLAGS", "-I/usr/X11/include/freetype2"
-
-    system "./configure", "--enable-release",
+    system "./configure", "--disable-dependency-tracking",
+                          "--enable-release",
                           "--prefix=#{prefix}",
-                          "--with-x", "--with-opengl"
-    system "make install"
+                          "--with-x",
+                          "--with-opengl"
+    # Unset LDFLAGS, "-s" causes the linker to crash
+    system "make", "install", "LDFLAGS="
+    rm bin/"Adie.stx"
   end
 end

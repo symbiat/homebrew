@@ -1,11 +1,15 @@
 require 'formula'
 
 class Atomicparsley < Formula
-  url 'https://bitbucket.org/wez/atomicparsley/get/0.9.4.tar.bz2'
   homepage 'http://bitbucket.org/wez/atomicparsley/overview/'
-  md5 '2ce6f39cedc959f46b5515920c35d0d7'
+  url 'https://bitbucket.org/dinkypumpkin/atomicparsley/downloads/atomicparsley-0.9.6.tar.bz2'
+  sha1 'ab5a4c5c477cd6cdb6e3b5f35dc24fd49e6b6b20'
 
   head 'https://bitbucket.org/wez/atomicparsley', :using => :hg
+
+  depends_on :autoconf
+  depends_on :automake
+  depends_on :libtool
 
   def install
     system "./autogen.sh"
@@ -15,4 +19,3 @@ class Atomicparsley < Formula
     system "make install"
   end
 end
-

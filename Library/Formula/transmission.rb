@@ -1,39 +1,77 @@
-require 'formula'
+require "formula"
 
 class Transmission < Formula
-  url 'http://download.transmissionbt.com/files/transmission-2.41.tar.bz2'
-  homepage 'http://www.transmissionbt.com/'
-  md5 '799b7bb24e236dbbdc86275f89ea9e67'
+  homepage "http://www.transmissionbt.com/"
+  url "http://download.transmissionbt.com/files/transmission-2.84.tar.xz"
+  sha1 "455359bc1fa34aeecc1bac9255ad0c884b94419c"
 
-  # Actually depends on libcurl but doesn't find it without pkg-config
-  depends_on 'pkg-config' => :build
-  depends_on 'libevent'
-  depends_on 'intltool' => :optional
-  depends_on 'gettext' => :optional # need gettext only if intltool is also installed
+  option "with-nls", "Build with native language support"
+
+  depends_on "pkg-config" => :build
+  depends_on "curl" if MacOS.version <= :leopard
+  depends_on "libevent"
+
+  if build.with? "nls"
+    depends_on "intltool" => :build
+    depends_on "gettext"
+  end
 
   def install
-    args = ["--disable-dependency-tracking",
-            "--disable-gtk", "--disable-mac",
-            "--prefix=#{prefix}"]
+    ENV.append "LDFLAGS", "-framework Foundation -prebind"
+    ENV.append "LDFLAGS", "-liconv"
 
-    args << "--disable-nls" unless Formula.factory("intltool").installed? and
-                                   Formula.factory("gettext").installed?
+    args = %W[--disable-dependency-tracking
+              --prefix=#{prefix}
+              --disable-mac
+              --without-gtk]
+
+    args << "--disable-nls" if build.without? "nls"
+
+    #fixes issue w/ webui files not being found #21151
+    #submitted upstream: https://trac.transmissionbt.com/ticket/5304
+    inreplace "libtransmission/platform.c", "SYS_DARWIN", "BUILD_MAC_CLIENT"
+    inreplace "libtransmission/utils.c", "SYS_DARWIN", "BUILD_MAC_CLIENT"
 
     system "./configure", *args
-    system "make" # build fails for some reason if make isn't done first
+    system "make" # Make and install in one step fails
     system "make install"
+
+    (var/"transmission").mkpath
   end
 
   def caveats; <<-EOS.undent
-    This formula only installs the Transmission command line utilities:
-      transmission-cli
-      transmission-create
-      transmission-daemon
-      transmission-edit
-      transmission-remote
-      transmission-show
+    This formula only installs the command line utilities.
+    Transmission.app can be downloaded from Transmission's website:
+      http://www.transmissionbt.com
+    EOS
+  end
 
-    Transmission.app can be downloaded from Transmission's website.
+  plist_options :manual => 'transmission-daemon --foreground'
+
+  def plist; <<-EOS.undent
+    <?xml version="1.0" encoding="UTF-8"?>
+    <!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+    <plist version="1.0">
+      <dict>
+        <key>Label</key>
+        <string>#{plist_name}</string>
+        <key>ProgramArguments</key>
+        <array>
+          <string>#{opt_bin}/transmission-daemon</string>
+          <string>--foreground</string>
+          <string>--config-dir</string>
+          <string>#{var}/transmission/</string>
+          <string>--log-info</string>
+          <string>--logfile</string>
+          <string>#{var}/transmission/transmission-daemon.log</string>
+        </array>
+        <key>KeepAlive</key>
+        <dict>
+          <key>NetworkState</key>
+          <true/>
+        </dict>
+      </dict>
+    </plist>
     EOS
   end
 end

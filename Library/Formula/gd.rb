@@ -1,39 +1,81 @@
 require 'formula'
 
 class Gd < Formula
-  url "http://www.libgd.org/releases/gd-2.0.36RC1.tar.gz"
-  homepage "http://bitbucket.org/pierrejoye/gd-libgd"
-  mirror "http://download.osgeo.org/mapserver/libgd/gd-2.0.36RC1.tar.gz"
-  md5 "39ac48e6d5e0012a3bd2248a0102f209"
+  homepage 'http://libgd.bitbucket.org/'
+  url 'https://bitbucket.org/libgd/gd-libgd/downloads/libgd-2.1.0.tar.gz'
+  sha1 'a0f3053724403aef9e126f4aa5c662573e5836cd'
+  revision 2
 
-  head "http://bitbucket.org/pierrejoye/gd-libgd", :using => :hg
-
-  depends_on 'jpeg' => :recommended
-
-  fails_with_llvm "Undefined symbols when linking", :build => "2326"
-
-  def install
-    ENV.x11
-    system "./configure", "--prefix=#{prefix}", "--with-freetype=/usr/X11"
-    system "make install"
-    (lib+'pkgconfig/gdlib.pc').write pkg_file
+  bottle do
+    cellar :any
+    revision 1
+    sha1 "370029d382be7ea5c8d5975f20b7668eced29f9c" => :yosemite
+    sha1 "e183bfd8da0354da3e0b046f2d092b099f4c6356" => :mavericks
+    sha1 "8fee5a15e1ed1331c52d9a286431fdd1b56c126e" => :mountain_lion
   end
 
-  def pkg_file; <<-EOF
-prefix=#{prefix}
-exec_prefix=${prefix}
-libdir=/${exec_prefix}/lib
-includedir=/${prefix}/include
-bindir=/${prefix}/bin
-ldflags=  -L/${prefix}/lib
+  head 'https://bitbucket.org/libgd/gd-libgd', :using => :hg
 
-Name: gd
-Description: A graphics library for quick creation of PNG or JPEG images
-Version: 2.0.36RC1
-Requires:
-Libs: -L${libdir} -lgd
-Libs.private: -lXpm -lX11 -ljpeg -lfontconfig -lfreetype -lpng12 -lz -lm
-Cflags: -I${includedir}
-EOF
+  option :universal
+
+  depends_on 'libpng' => :recommended
+  depends_on 'jpeg' => :recommended
+  depends_on 'fontconfig' => :recommended
+  depends_on 'freetype' => :recommended
+  depends_on 'libtiff' => :recommended
+  depends_on 'libvpx' => :optional
+
+  fails_with :llvm do
+    build 2326
+    cause "Undefined symbols when linking"
+  end
+
+  def install
+    ENV.universal_binary if build.universal?
+    args = %W{--disable-dependency-tracking --prefix=#{prefix}}
+
+    if build.with? "libpng"
+      args << "--with-png=#{Formula["libpng"].opt_prefix}"
+    else
+      args << "--without-png"
+    end
+
+    if build.with? "fontconfig"
+      args << "--with-fontconfig=#{Formula["fontconfig"].opt_prefix}"
+    else
+      args << "--without-fontconfig"
+    end
+
+    if build.with? "freetype"
+      args << "--with-freetype=#{Formula["freetype"].opt_prefix}"
+    else
+      args << "--without-freetype"
+    end
+
+    if build.with? "jpeg"
+      args << "--with-jpeg=#{Formula["jpeg"].opt_prefix}"
+    else
+      args << "--without-jpeg"
+    end
+
+    if build.with? "libtiff"
+      args << "--with-tiff=#{Formula["libtiff"].opt_prefix}"
+    else
+      args << "--without-tiff"
+    end
+
+    if build.with? "libvpx"
+      args << "--with-vpx=#{Formula["libvpx"].opt_prefix}"
+    else
+      args << "--without-vpx"
+    end
+
+    system "./configure", *args
+    system "make install"
+  end
+
+  test do
+    system "#{bin}/pngtogd", test_fixtures("test.png"), "gd_test.gd"
+    system "#{bin}/gdtopng", "gd_test.gd", "gd_test.png"
   end
 end

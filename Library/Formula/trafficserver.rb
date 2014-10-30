@@ -1,32 +1,143 @@
-require 'formula'
+require "formula"
 
 class Trafficserver < Formula
-  url 'http://www.apache.org/dyn/closer.cgi/trafficserver/trafficserver-3.0.2.tar.bz2'
-  homepage 'http://trafficserver.apache.org/'
-  md5 '0f8e5ce658d28511001c6585d1e1813a'
+  homepage "http://trafficserver.apache.org/"
+  url "http://www.apache.org/dyn/closer.cgi?path=trafficserver/trafficserver-4.2.2.tar.bz2"
+  mirror "http://archive.apache.org/dist/trafficserver/trafficserver-4.2.2.tar.bz2"
+  sha1 "8c862f0402f278eb8bca1678b0db0c4fcb0dd565"
 
-  head 'http://svn.apache.org/repos/asf/trafficserver/traffic/trunk/'
-
-  devel do
-    url 'http://www.apache.org/dyn/closer.cgi/trafficserver/trafficserver-3.1.2-unstable.tar.bz2'
-    md5 '2208cb9a0d0b7cea07770d51b1cf7df2'
-    version '3.1.2'
+  bottle do
+    sha1 "e073851a656cec3a052c9dab8ce7b7658b11dccc" => :mavericks
+    sha1 "9f76a7d1b206220a47a60144f9844f6f30f2921b" => :mountain_lion
+    sha1 "73736e9882f28d2265e923fbb1f5830f3d462bd6" => :lion
   end
 
-  depends_on 'pcre'
+  depends_on "pcre"
+
+  #remove some amd64 compiler options that fail on Snow Leopard
+  patch :DATA if MacOS.version == :snow_leopard
 
   def install
-    system "autoreconf -i" if ARGV.build_head?
-
     # Needed for correct ./configure detections.
     ENV.enable_warnings
     # Needed for OpenSSL headers on Lion.
     ENV.append_to_cflags "-Wno-deprecated-declarations"
-    system "./configure", "--prefix=#{prefix}", "--with-user=#{ENV['USER']}", "--with-group=admin"
+    system "./configure", "--prefix=#{prefix}",
+                          "--mandir=#{man}",
+                          "--with-user=#{ENV['USER']}",
+                          "--with-group=admin"
     system "make install"
   end
 
-  def test
-    system "trafficserver status"
+  test do
+    system "#{bin}/trafficserver", "status"
   end
 end
+
+__END__
+diff --git a/configure b/configure
+index 49add2a..e478b34 100755
+--- a/configure
++++ b/configure
+@@ -24109,48 +24109,6 @@ $as_echo "yes" >&6; }
+
+ else
+
+-
+-  if test "x$CXXFLAGS" = "x"; then
+-    test "x$verbose" = "xyes" && echo "  setting CXXFLAGS to \"-mcx16\""
+-    CXXFLAGS="-mcx16"
+-  else
+-    ats_addto_bugger="-mcx16"
+-    for i in $ats_addto_bugger; do
+-      ats_addto_duplicate="0"
+-      for j in $CXXFLAGS; do
+-        if test "x$i" = "x$j"; then
+-          ats_addto_duplicate="1"
+-          break
+-        fi
+-      done
+-      if test $ats_addto_duplicate = "0"; then
+-        test "x$verbose" = "xyes" && echo "  adding \"$i\" to CXXFLAGS"
+-        CXXFLAGS="$CXXFLAGS $i"
+-      fi
+-    done
+-  fi
+-
+-
+-  if test "x$CFLAGS" = "x"; then
+-    test "x$verbose" = "xyes" && echo "  setting CFLAGS to \"-mcx16\""
+-    CFLAGS="-mcx16"
+-  else
+-    ats_addto_bugger="-mcx16"
+-    for i in $ats_addto_bugger; do
+-      ats_addto_duplicate="0"
+-      for j in $CFLAGS; do
+-        if test "x$i" = "x$j"; then
+-          ats_addto_duplicate="1"
+-          break
+-        fi
+-      done
+-      if test $ats_addto_duplicate = "0"; then
+-        test "x$verbose" = "xyes" && echo "  adding \"$i\" to CFLAGS"
+-        CFLAGS="$CFLAGS $i"
+-      fi
+-    done
+-  fi
+-
+     ats_save_CFLAGS=$CFLAGS
+  CFLAGS="$CFLAGS $CFLAGS_WARN"
+  if test "$ac_cv_c_compiler_gnu" = "yes"; then
+@@ -24204,52 +24162,6 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+
+-if test "x$has_128bit_cas" = "x1"; then :
+-
+-
+-  if test "x$CFLAGS" = "x"; then
+-    test "x$verbose" = "xyes" && echo "  setting CFLAGS to \"-mcx16\""
+-    CFLAGS="-mcx16"
+-  else
+-    ats_addto_bugger="-mcx16"
+-    for i in $ats_addto_bugger; do
+-      ats_addto_duplicate="0"
+-      for j in $CFLAGS; do
+-        if test "x$i" = "x$j"; then
+-          ats_addto_duplicate="1"
+-          break
+-        fi
+-      done
+-      if test $ats_addto_duplicate = "0"; then
+-        test "x$verbose" = "xyes" && echo "  adding \"$i\" to CFLAGS"
+-        CFLAGS="$CFLAGS $i"
+-      fi
+-    done
+-  fi
+-
+-
+-  if test "x$CXXFLAGS" = "x"; then
+-    test "x$verbose" = "xyes" && echo "  setting CXXFLAGS to \"-mcx16\""
+-    CXXFLAGS="-mcx16"
+-  else
+-    ats_addto_bugger="-mcx16"
+-    for i in $ats_addto_bugger; do
+-      ats_addto_duplicate="0"
+-      for j in $CXXFLAGS; do
+-        if test "x$i" = "x$j"; then
+-          ats_addto_duplicate="1"
+-          break
+-        fi
+-      done
+-      if test $ats_addto_duplicate = "0"; then
+-        test "x$verbose" = "xyes" && echo "  adding \"$i\" to CXXFLAGS"
+-        CXXFLAGS="$CXXFLAGS $i"
+-      fi
+-    done
+-  fi
+-
+-
+-fi
+
+ # Check for POSIX capabilities library.
+ # If we don't find it, disable checking for header.

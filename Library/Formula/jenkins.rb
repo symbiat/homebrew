@@ -1,53 +1,48 @@
-require 'formula'
+require "formula"
 
 class Jenkins < Formula
-  homepage 'http://jenkins-ci.org'
-  url 'http://mirrors.jenkins-ci.org/war/1.451/jenkins.war', :using => :nounzip
-  version '1.451'
-  md5 '3f3a60fa54fa85bd9a56cec0a768ef78'
-  head 'https://github.com/jenkinsci/jenkins.git'
+  homepage "http://jenkins-ci.org"
+  url "http://mirrors.jenkins-ci.org/war/1.587/jenkins.war"
+  sha1 "2a12efb6e60732ed74eee09922af12fa67362a9e"
+
+  head "https://github.com/jenkinsci/jenkins.git"
 
   def install
-    system "mvn clean install -pl war -am -DskipTests && mv war/target/jenkins.war ." if ARGV.build_head?
-    lib.install "jenkins.war"
-    plist_path.write startup_plist
-    plist_path.chmod 0644
+    if build.head?
+      system "mvn clean install -pl war -am -DskipTests"
+      libexec.install "war/target/jenkins.war", "."
+    else
+      libexec.install "jenkins.war"
+    end
   end
 
-  def caveats; <<-EOS
-If this is your first install, automatically load on login with:
-    mkdir -p ~/Library/LaunchAgents
-    cp #{plist_path} ~/Library/LaunchAgents/
-    launchctl load -w ~/Library/LaunchAgents/#{plist_path.basename}
+  plist_options :manual => "java -jar #{HOMEBREW_PREFIX}/opt/jenkins/libexec/jenkins.war"
 
-If this is an upgrade and you already have the #{plist_path.basename} loaded:
-    launchctl unload -w ~/Library/LaunchAgents/#{plist_path.basename}
-    cp #{plist_path} ~/Library/LaunchAgents/
-    launchctl load -w ~/Library/LaunchAgents/#{plist_path.basename}
-
-Or start it manually:
-    java -jar #{lib}/jenkins.war
-EOS
+  def plist; <<-EOS.undent
+    <?xml version="1.0" encoding="UTF-8"?>
+    <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+    <plist version="1.0">
+      <dict>
+        <key>Label</key>
+        <string>#{plist_name}</string>
+        <key>ProgramArguments</key>
+        <array>
+          <string>/usr/bin/java</string>
+          <string>-Dmail.smtp.starttls.enable=true</string>
+          <string>-jar</string>
+          <string>#{opt_libexec}/jenkins.war</string>
+          <string>--httpListenAddress=127.0.0.1</string>
+          <string>--httpPort=8080</string>
+        </array>
+        <key>RunAtLoad</key>
+        <true/>
+      </dict>
+    </plist>
+  EOS
   end
 
-  def startup_plist
-    return <<-EOS
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>Label</key>
-    <string>#{plist_name}</string>
-    <key>ProgramArguments</key>
-    <array>
-    <string>/usr/bin/java</string>
-    <string>-jar</string>
-    <string>#{HOMEBREW_PREFIX}/lib/jenkins.war</string>
-    </array>
-    <key>RunAtLoad</key>
-    <true/>
-</dict>
-</plist>
-EOS
+  def caveats; <<-EOS.undent
+    Note: When using launchctl the port will be 8080.
+    EOS
   end
 end

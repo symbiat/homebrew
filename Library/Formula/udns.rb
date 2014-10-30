@@ -1,46 +1,44 @@
 require 'formula'
 
 class Udns < Formula
-  url 'http://www.corpit.ru/mjt/udns/udns-0.1.tar.gz'
   homepage 'http://www.corpit.ru/mjt/udns.html'
-  sha1 'e3326684653701f9219cc213bdc3656dff269c80'
+  url 'http://www.corpit.ru/mjt/udns/udns-0.4.tar.gz'
+  sha1 'ffa0abf9d1654feb64d571b2615d8b70e1dd92ce'
 
   # Build target for dylib. See:
   # http://www.corpit.ru/pipermail/udns/2011q3/000154.html
-  def patches
-    DATA
-  end
+  patch :DATA
 
   def install
     system "./configure"
     system "make"
     system "make dylib"
 
-    bin.install ["dnsget", "rblcheck"]
-    doc.install ["NOTES", "TODO", "ex-rdns.c"]
+    bin.install "dnsget", "rblcheck"
+    doc.install "NOTES", "TODO", "ex-rdns.c"
     include.install "udns.h"
-    lib.install ["libudns.a", "libudns.0.dylib", "libudns.dylib"]
-    man1.install ["dnsget.1", "rblcheck.1"]
+    lib.install "libudns.a", "libudns.0.dylib", "libudns.dylib"
+    man1.install "dnsget.1", "rblcheck.1"
     man3.install "udns.3"
   end
 end
 
 __END__
---- udns-0.1.orig/Makefile.in	2010-12-27 09:35:02.000000000 -0800
-+++ udns-0.1/Makefile.in	2011-05-03 15:09:46.000000000 -0700
-@@ -42,7 +42,10 @@
+--- udns-0.4.orig/Makefile.in	2014-01-23 02:45:31.000000000 -0800
++++ udns-0.4/Makefile.in	2014-08-16 20:22:00.000000000 -0700
+@@ -42,6 +42,11 @@
  SOLIBV = lib$(NAME).so.$(SOVER)
  SOLIBFL= -L. -l$(NAME)_s
  
--LIBS   = $(LIB) $(SOLIBV)
-+DYLIB  = lib$(NAME).dylib
++DYLIB   = lib$(NAME).dylib
 +DYLIBV = lib$(NAME).$(SOVER).dylib
 +
 +LIBS   = $(LIB) $(SOLIBV) $(DYLIB)
- 
++
  UTILS   = $(USRCS:.c=)
  UOBJS   = $(USRCS:.c=.o)
-@@ -68,6 +71,14 @@
+ SOUTILS = $(USRCS:.c=_s)
+@@ -71,6 +76,14 @@
  .c.o:
  	$(CC) $(CFLAGS) $(CDEFS) -c $<
  
@@ -49,9 +47,8 @@ __END__
 +$(DYLIBV): $(SOBJS)
 +	$(CC) -dynamiclib $(SOBJS) -o $(DYLIBV)
 +$(DYLIB): $(DYLIBV)
-+	rm -f $@
++	rm -rf $@
 +	ln -s $(DYLIBV) $@
 +
  shared: $(SOLIBV) $(SOUTILS)
  sharedlib: $(SOLIBV)
- 

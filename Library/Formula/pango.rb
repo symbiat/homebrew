@@ -1,64 +1,62 @@
 require 'formula'
 
 class Pango < Formula
-  homepage 'http://www.pango.org/'
-  url 'http://ftp.gnome.org/pub/GNOME/sources/pango/1.28/pango-1.28.4.tar.bz2'
-  sha256 '7eb035bcc10dd01569a214d5e2bc3437de95d9ac1cfa9f50035a687c45f05a9f'
+  homepage "http://www.pango.org/"
+  url "http://ftp.gnome.org/pub/GNOME/sources/pango/1.36/pango-1.36.8.tar.xz"
+  sha256 "18dbb51b8ae12bae0ab7a958e7cf3317c9acfc8a1e1103ec2f147164a0fc2d07"
 
-  devel do
-    url 'http://ftp.gnome.org/pub/gnome/sources/pango/1.29/pango-1.29.4.tar.bz2'
-    sha256 'f15deecaecf1e9dcb7db0e4947d12b5bcff112586434f8d30a5afd750747ff2b'
+  head do
+    url 'git://git.gnome.org/pango'
+
+    depends_on 'automake' => :build
+    depends_on 'autoconf' => :build
+    depends_on 'libtool' => :build
+    depends_on 'gtk-doc' => :build
+  end
+
+  bottle do
+    revision 1
+    sha1 "b30d81e5b4b90792e14aa02b273fcf93e9675fc7" => :yosemite
+    sha1 "eb30e96c1d896cd8fc7e1053513b3e298645c9af" => :mavericks
+    sha1 "ea288645c2ca58b4addf29c0140fb3ecec6ea3ab" => :mountain_lion
   end
 
   depends_on 'pkg-config' => :build
   depends_on 'glib'
+  depends_on 'cairo'
+  depends_on 'harfbuzz'
+  depends_on 'fontconfig'
+  depends_on :x11 => :recommended
+  depends_on 'gobject-introspection'
 
-  if MacOS.leopard?
-    depends_on 'fontconfig' # Leopard's fontconfig is too old.
-    depends_on 'cairo' # Leopard doesn't come with Cairo.
-  elsif MacOS.lion?
-    # The Cairo library shipped with Lion contains a flaw that causes Graphviz
-    # to segfault. See the following ticket for information:
-    #
-    #   https://trac.macports.org/ticket/30370
-    depends_on 'cairo'
-  end
-
-  fails_with_llvm "Undefined symbols when linking", :build => "2326"
-
-  def patches
-    p = {}
-    unless ARGV.build_devel?
-      # Some things that depend on pango and glib 2.30.x have issues with the deprecated
-      # G_CONST_RETURN. Shouldn't be an issue with 1.29.x.
-      p[:p0] = "https://trac.macports.org/export/89719/trunk/dports/x11/pango/files/patch-G_CONST_RETURN.diff"
-    end
-
-    if ARGV.build_devel? and MacOS.lion?
-      # Fixes font size rendering in lion. See the following post for details
-      # http://web.me.com/aschweiz/Website/Blog/Entries/2011/10/6_CoreText_vs._FontConfig.html
-      p[:p1] = "http://web.me.com/aschweiz/Website/Blog/Entries/2011/10/6_CoreText_vs._FontConfig_files/pango-1.29.3-coretext.patch"
-    end
-    return p
+  fails_with :llvm do
+    build 2326
+    cause "Undefined symbols when linking"
   end
 
   def install
-    ENV.x11
-    system "./configure", "--disable-dependency-tracking",
-                          "--disable-debug",
-                          "--prefix=#{prefix}",
-                          "--enable-man",
-                          "--with-x",
-                          "--with-html-dir=#{share}/doc",
-                          "--disable-introspection"
+    args = %W[
+      --disable-dependency-tracking
+      --disable-silent-rules
+      --prefix=#{prefix}
+      --enable-man
+      --with-html-dir=#{share}/doc
+      --enable-introspection=yes
+    ]
+
+    if build.without? "x11"
+      args << '--without-xft'
+    else
+      args << '--with-xft'
+    end
+
+    system "./autogen.sh" if build.head?
+    system "./configure", *args
     system "make"
     system "make install"
   end
 
-  def test
-    mktemp do
-      system "#{bin}/pango-view -t 'test-image' --waterfall --rotate=10 --annotate=1 --header -q -o output.png"
-      system "/usr/bin/qlmanage -p output.png"
-    end
+  test do
+    system "#{bin}/pango-querymodules", "--version"
   end
 end

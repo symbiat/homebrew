@@ -1,34 +1,34 @@
-require 'formula'
+require "formula"
 
 class Icu4c < Formula
-  homepage 'http://site.icu-project.org/'
-  url 'http://download.icu-project.org/files/icu4c/4.8.1.1/icu4c-4_8_1_1-src.tgz'
-  version '4.8.1.1'
-  md5 'ea93970a0275be6b42f56953cd332c17'
+  homepage "http://site.icu-project.org/"
+  head "http://source.icu-project.org/repos/icu/icu/trunk/", :using => :svn
+  url "http://download.icu-project.org/files/icu4c/54.1/icu4c-54_1-src.tgz"
+  version "54.1"
+  sha1 "8c752490bbf31cea26e20246430cee67d48abe34"
 
   bottle do
-    url 'https://downloads.sf.net/project/machomebrew/Bottles/icu4c-4.8.1.1-bottle.tar.gz'
-    sha1 '51b6e6e735ea581a2736127414e600362846b7e1'
+    revision 1
+    sha1 "244dbb217c95a79f87a35df70aca493a05c9ff39" => :yosemite
+    sha1 "a963404c60a1de000c3e9d7478f6318e8f3c9291" => :mavericks
+    sha1 "fb48ee8a8fa5aa9537d4e594178bc7e62689156a" => :mountain_lion
   end
 
-  keg_only "Conflicts; see: https://github.com/mxcl/homebrew/issues/issue/167"
+  keg_only :provided_by_osx, "OS X provides libicucore.dylib (but nothing else)."
 
-  def options
-    [
-      ["--universal", "Build universal binaries."]
-    ]
-  end
+  option :universal
+  option :cxx11
 
   def install
-    ENV.universal_binary if ARGV.build_universal?
+    ENV.universal_binary if build.universal?
+    ENV.cxx11 if build.cxx11?
 
-    ENV.append "LDFLAGS", "-headerpad_max_install_names"
-    args = ["--prefix=#{prefix}", "--disable-samples", "--enable-static"]
+    args = ["--prefix=#{prefix}", "--disable-samples", "--disable-tests", "--enable-static"]
     args << "--with-library-bits=64" if MacOS.prefer_64_bit?
     cd "source" do
       system "./configure", *args
       system "make"
-      system "make install"
+      system "make", "install"
     end
   end
 end

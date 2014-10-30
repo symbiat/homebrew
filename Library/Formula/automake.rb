@@ -2,28 +2,36 @@ require 'formula'
 
 class Automake < Formula
   homepage 'http://www.gnu.org/software/automake/'
-  url 'http://ftpmirror.gnu.org/automake/automake-1.11.3.tar.gz'
-  mirror 'http://ftp.gnu.org/gnu/automake/automake-1.11.3.tar.gz'
-  md5 '93ecb319f0365cb801990b00f658d026'
+  url 'http://ftpmirror.gnu.org/automake/automake-1.14.1.tar.gz'
+  mirror 'http://ftp.gnu.org/gnu/automake/automake-1.14.1.tar.gz'
+  sha1 '0bb1714b78d70cab9907d2013082978a28f48a46'
 
-  depends_on "autoconf"
-
-  if MacOS.xcode_version.to_f < 4.3 or File.file? "/usr/bin/automake"
-    keg_only "Xcode (up to and including 4.2) provides (a rather old) Automake."
+  bottle do
+    sha1 "b7f153654e9a99194f13a8da140b3d861f046af0" => :yosemite
+    sha1 '8720e073a828e5b7e29e5cacd01b3ccca88a6d40' => :mavericks
+    sha1 'ed3cba7f2a806a4192e875e809bb73b65a128757' => :mountain_lion
+    sha1 '12d0d7d3b6d31ea4faf9551076225343e9a5af1f' => :lion
   end
+
+  depends_on 'autoconf' => :run
+
+  keg_only :provided_until_xcode43
 
   def install
-    system "./configure", "--disable-debug", "--disable-dependency-tracking",
-                          "--prefix=#{prefix}"
+    ENV['PERL'] = '/usr/bin/perl'
+
+    system "./configure", "--prefix=#{prefix}"
     system "make install"
 
+    # Our aclocal must go first. See:
+    # https://github.com/Homebrew/homebrew/issues/10618
     (share/"aclocal/dirlist").write <<-EOS.undent
-      /usr/share/aclocal
       #{HOMEBREW_PREFIX}/share/aclocal
-      EOS
+      /usr/share/aclocal
+    EOS
   end
 
-  def test
-    system "#{bin}/automake --version"
+  test do
+    system "#{bin}/automake", "--version"
   end
 end

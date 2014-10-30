@@ -1,74 +1,38 @@
 require 'formula'
 
+# No head build supported; if you need head builds of Mercurial, do so outside
+# of Homebrew.
 class Mercurial < Formula
   homepage 'http://mercurial.selenic.com/'
-  url 'http://mercurial.selenic.com/release/mercurial-2.1.tar.gz'
-  sha1 'f649a0b33e0cafb3e5867a2e970f41eb887d3fab'
-  head 'http://selenic.com/repo/hg', :using => :hg
+  url 'http://mercurial.selenic.com/release/mercurial-3.1.2.tar.gz'
+  sha1 'ae7e16454cee505da895c2497f09711f35287459'
 
-  depends_on 'docutils' => :python if ARGV.build_head? or ARGV.include? "--doc"
-
-  def options
-    [["--doc", "build the documentation. Depends on 'docutils' module."]]
-  end
-
-  # Remove the error codes on things like "no changes found"
-  # Will be in next release
-  # See: http://selenic.com/hg/rev/a3dcc59054ca
-  def patches
-    "http://selenic.com/hg/raw-rev/a3dcc59054ca"
+  bottle do
+    cellar :any
+    revision 1
+    sha1 "94cb5a3811f44023b20442b94807b912a849f9ab" => :yosemite
+    sha1 "a9e4bfe5e0aa0894173983e9de781e1a2c443c71" => :mavericks
+    sha1 "694095ae79b80fdc761ae341b0c18fa941bdeeb9" => :mountain_lion
   end
 
   def install
-    # Don't add compiler specific flags so we can build against
-    # System-provided Python.
-    ENV.minimal_optimization
+    ENV.minimal_optimization if MacOS.version <= :snow_leopard
 
-    # Force the binary install path to the Cellar
-    inreplace "Makefile",
-      "setup.py $(PURE) install",
-      "setup.py $(PURE) install --install-scripts=\"#{libexec}\""
-
-    # Make Mercurial into the Cellar.
-    # The documentation must be built when using HEAD
-    if ARGV.build_head? or ARGV.include? "--doc"
-      system "make", "doc"
-    end
-    system "make", "PREFIX=#{prefix}", "build"
     system "make", "PREFIX=#{prefix}", "install-bin"
-
-    # Now we have lib/python2.x/site-packages/ with Mercurial
-    # libs in them. We want to move these out of site-packages into
-    # a self-contained folder. Let's choose libexec.
-    libexec.install Dir["#{lib}/python*/site-packages/*"]
-
-    # Symlink the hg binary into bin
-    bin.install_symlink libexec+'hg'
-
-    # Remove the hard-coded python invocation from hg
-    inreplace bin+'hg', %r[#!/.*/python/.*], '#!/usr/bin/env python'
-
-    # Install some contribs
-    bin.install 'contrib/hgk'
-
-    # Install man pages
+    # Install man pages, which come pre-built in source releases
     man1.install 'doc/hg.1'
     man5.install 'doc/hgignore.5', 'doc/hgrc.5'
+
+    # install the completion scripts
+    bash_completion.install 'contrib/bash_completion' => 'hg-completion.bash'
+    zsh_completion.install 'contrib/zsh_completion' => '_hg'
+
+    # install the merge tool default configs
+    # http://mercurial.selenic.com/wiki/Packaging#Things_to_note
+    (etc/"mercurial"/"hgrc.d").install "contrib/mergetools.hgrc" => "mergetools.rc"
   end
 
-  def caveats
-    s = ""
-    if ARGV.build_head?
-      s += <<-EOS.undent
-        As mercurial is required to get its own repository, there are now two
-        installations of mercurial on this machine.
-        If the previous installation has been done through Homebrew, the old version
-        needs to be removed and the new one needs to be linked :
-
-          brew cleanup mercurial && brew link mercurial
-
-      EOS
-    end
-    return s
+  test do
+    system "#{bin}/hg", "init"
   end
 end

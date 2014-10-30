@@ -1,20 +1,13 @@
 require 'formula'
 
 class Poster < Formula
-  url 'https://github.com/schrfr/poster/tarball/1.0.0'
-  homepage 'http://schrfr.github.com/poster/'
-  md5 'c76de471156c65b8182de0e6f5c8f1b5'
+  homepage 'http://schrfr.github.io/poster/'
+  url 'https://github.com/schrfr/poster/archive/1.0.0.tar.gz'
+  sha1 '20846c17fc0c266caecf82b24cbe7906999a410c'
 
   def install
-    inreplace "Makefile", "/usr/local/bin", bin
-    inreplace "Makefile", "/usr/local/man/man1", man1
-    bin.mkpath
-    man1.mkpath
-    system "make install"
+    system "make"
+    bin.install 'poster'
+    man1.install 'poster.1'
   end
-
-  def test
-    return `which poster`.strip != ""
-  end
-
 end

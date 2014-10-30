@@ -1,16 +1,18 @@
-require 'formula'
+require "formula"
 
 class Feh < Formula
-  url 'http://feh.finalrewind.org/feh-2.2.tar.bz2'
-  homepage 'http://feh.finalrewind.org/'
-  md5 '7dee285e8dd34f69058b0977283b3a8a'
+  homepage "http://feh.finalrewind.org/"
+  url "http://feh.finalrewind.org/feh-2.12.tar.bz2"
+  sha1 "30eb2b778858b1f4ce97e44c8225758185b0c588"
 
-  depends_on 'giblib' => :build
+  depends_on :x11
+  depends_on "imlib2"
+  depends_on "libexif" => :recommended
 
   def install
-    ENV.x11
-
-    system "make", "PREFIX=#{prefix}"
+    args = []
+    args << "exif=1" if build.with? "libexif"
+    system "make", "PREFIX=#{prefix}", *args
     system "make", "PREFIX=#{prefix}", "install"
   end
 end

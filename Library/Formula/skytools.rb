@@ -2,22 +2,14 @@ require 'formula'
 
 class Skytools < Formula
   homepage 'http://pgfoundry.org/projects/skytools/'
-  url 'http://pgfoundry.org/frs/download.php/2872/skytools-2.1.12.tar.gz'
-  md5 '94f3391d5b3c3ac6c2edcbfbda705573'
+  url 'http://pgfoundry.org/frs/download.php/3622/skytools-3.2.tar.gz'
+  sha1 '8e6e0f594c1c97e138ca6a3c1e621f5433de2559'
+
+  # Works only with homebrew postgres:
+  # https://github.com/Homebrew/homebrew/issues/16024
+  depends_on 'postgresql'
 
   def install
-    unless `/usr/bin/which pg_config`.size > 0
-      opoo "No pg_config was detected."
-      puts <<-EOS.undent
-        pg_top requires postgresql in order to compile, but pg_config was not
-        found. This install will likely fail.
-
-        You can install this with:
-          brew install postgresql
-        or by using a package installer from the PostgreSQL project itself.
-      EOS
-    end
-
     system "./configure", "--prefix=#{prefix}"
     system "make"
     system "make install"

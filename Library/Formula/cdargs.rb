@@ -3,15 +3,16 @@ require 'formula'
 class Cdargs < Formula
   homepage 'http://www.skamphausen.de/cgi-bin/ska/CDargs'
   url 'http://www.skamphausen.de/downloads/cdargs/cdargs-1.35.tar.gz'
-  md5 '50be618d67f0b9f2439526193c69c567'
+  sha1 '20017d09d3259fcd1385754554a3e17a1c975f9b'
 
-  fails_with_llvm "Bus error in ld on SL 10.6.4", :build => 2334
+  fails_with :llvm do
+    build 2334
+    cause "Bus error in ld on SL 10.6.4"
+  end
 
   # fixes zsh usage using the patch provided at the cdargs homepage
   # (See http://www.skamphausen.de/cgi-bin/ska/CDargs)
-  def patches
-    DATA
-  end
+  patch :DATA
 
   def install
     system "./configure", "--prefix=#{prefix}", "--mandir=#{man}"
@@ -20,22 +21,12 @@ class Cdargs < Formula
 
     rm Dir['contrib/Makefile*']
     prefix.install 'contrib'
-
-    (etc+'bash_completion.d').install_symlink prefix+'contrib/cdargs-bash.sh'
+    bash_completion.install_symlink "#{prefix}/contrib/cdargs-bash.sh"
   end
 
   def caveats; <<-EOS.undent
-      Support files for bash, tcsh and emacs are located in:
+      Support files for bash, tcsh, and emacs have been installed to:
         #{prefix}/contrib
-
-      The file for bash is also symlinked to:
-        #{etc}/bash_completion.d/cdargs-bash.sh
-
-      Source it from your .bash_profile or .bashrc to get nice aliases and bash completion.
-
-      For zsh use the bash script.
-
-      Consult the cdargs man page for more details and instructions.
     EOS
   end
 end

@@ -1,40 +1,47 @@
-require 'formula'
+require "formula"
 
 class Cppcheck < Formula
-  homepage 'http://sourceforge.net/apps/mediawiki/cppcheck/index.php?title=Main_Page'
-  url 'http://downloads.sourceforge.net/project/cppcheck/cppcheck/1.52/cppcheck-1.52.tar.bz2'
-  md5 'ebb9355890057a5145485dd42c18e05e'
+  homepage "http://sourceforge.net/apps/mediawiki/cppcheck/index.php?title=Main_Page"
+  url "https://github.com/danmar/cppcheck/archive/1.67.tar.gz"
+  sha1 "14b886e5cac631cec11a3f8efbdeaed15ddcc7d3"
+  revision 1
 
-  head 'https://github.com/danmar/cppcheck.git'
+  head "https://github.com/danmar/cppcheck.git"
 
-  depends_on 'pcre' unless ARGV.include? '--no-rules'
-  depends_on 'qt' if ARGV.include? '--with-gui'
-
-  def options
-    [
-      ['--no-rules', "Build without rules (no pcre dependency)"],
-      ['--with-gui', "Build the cppcheck gui."]
-    ]
+  bottle do
+    sha1 "f5be9595dfdbbc616cbd1f11d3ea59ec32045309" => :yosemite
+    sha1 "5fb0911b3ff750368cbbfed71a1809e298404d8b" => :mavericks
+    sha1 "ae6b9a60ed3e139814c647aabdb4df1c71058436" => :mountain_lion
   end
 
-  # Do not strip binaries, or else it fails to run.
-  skip_clean :all
+  option "no-rules", "Build without rules (no pcre dependency)"
+  option "with-gui", "Build the cppcheck gui (requires Qt)"
+
+  depends_on "pcre" unless build.include? "no-rules"
+  depends_on "qt" if build.with? "gui"
 
   def install
     # Man pages aren't installed as they require docbook schemas.
 
     # Pass to make variables.
-    if ARGV.include? '--no-rules'
-      system "make", "HAVE_RULES=no"
+    if build.include? "no-rules"
+      system "make", "HAVE_RULES=no", "CFGDIR=#{prefix}/cfg"
     else
-      system "make"
+      system "make", "HAVE_RULES=yes", "CFGDIR=#{prefix}/cfg"
     end
 
-    system "make", "DESTDIR=#{prefix}", "BIN=#{bin}", "install"
+    system "make", "DESTDIR=#{prefix}", "BIN=#{bin}", "CFGDIR=#{prefix}/cfg", "install"
 
-    if ARGV.include? '--with-gui'
+    # make sure cppcheck can find its configure directory, #26194
+    prefix.install "cfg"
+
+    if build.with? "gui"
       cd "gui" do
-        if ARGV.include? '--no-rules'
+        # fix make not finding cfg directory:
+        # https://github.com/Homebrew/homebrew/issues/27756
+        inreplace "gui.qrc", "../cfg/", "#{prefix}/cfg/"
+
+        if build.include? "no-rules"
           system "qmake", "HAVE_RULES=no"
         else
           system "qmake"
@@ -46,14 +53,7 @@ class Cppcheck < Formula
     end
   end
 
-  def caveats; <<-EOS.undent
-    --with-gui installs cppcheck-gui.app in:
-      #{bin}
-
-    To link the application to a normal Mac OS X location:
-        brew linkapps
-    or:
-        ln -s #{bin}/cppcheck-gui.app /Applications
-    EOS
+  test do
+    system "#{bin}/cppcheck", "--version"
   end
 end

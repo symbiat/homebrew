@@ -1,20 +1,14 @@
 require 'formula'
 
 class Mpop < Formula
-  url 'http://downloads.sourceforge.net/project/mpop/mpop/1.0.19/mpop-1.0.19.tar.bz2'
   homepage 'http://mpop.sourceforge.net/'
-  md5 '40a48d486121a15075faee944a7b8fb7'
+  url 'https://downloads.sourceforge.net/project/mpop/mpop/1.0.29/mpop-1.0.29.tar.bz2'
+  sha1 '489ff6ae4d662af4179d9affc86e79db94ed95b5'
 
-  def options
-    [['--with-macosx-keyring', "Support Mac OS X Keyring"]]
-  end
+  depends_on 'pkg-config' => :build
 
   def install
-    args = [ "--prefix=#{prefix}",
-            "--disable-debug",
-            "--disable-dependency-tracking"]
-    args << "--with-macosx-keyring" if ARGV.include? '--with-macosx-keyring'
-    system "./configure", *args
+    system './configure', "--prefix=#{prefix}", '--disable-dependency-tracking'
     system "make install"
   end
 end

@@ -2,18 +2,54 @@ require 'formula'
 
 class OpenMpi < Formula
   homepage 'http://www.open-mpi.org/'
-  url 'http://www.open-mpi.org/software/ompi/v1.4/downloads/openmpi-1.4.5.tar.gz'
-  md5 '28b2a7f9c2fcee0217facf47bf35d5ea'
+  url 'http://www.open-mpi.org/software/ompi/v1.8/downloads/openmpi-1.8.3.tar.bz2'
+  sha1 '4be9c5d2a8baee6a80bde94c6485931979a428fe'
+
+  bottle do
+    sha1 "60e953d115aa38e7495c7de774518eda83abb982" => :yosemite
+    sha1 "257dfda61a3a2b75c1d810c25e034b4e8998ff0e" => :mavericks
+    sha1 "6ef00e19f8ceb677ca370c209ef2f1cefd085e09" => :mountain_lion
+  end
+
+  option 'disable-fortran', 'Do not build the Fortran bindings'
+  option 'enable-mpi-thread-multiple', 'Enable MPI_THREAD_MULTIPLE'
+  option :cxx11
+
+  conflicts_with 'mpich2', :because => 'both install mpi__ compiler wrappers'
+  conflicts_with 'lcdf-typetools', :because => 'both install same set of binaries.'
+
+  depends_on :fortran unless build.include? 'disable-fortran'
+  depends_on 'libevent'
 
   def install
-    # Compiler complains about link compatibility with FORTRAN otherwise
-    ENV.delete('CFLAGS')
-    ENV.delete('CXXFLAGS')
-    system "./configure", "--prefix=#{prefix}", "--disable-debug", "--disable-dependency-tracking"
-    system "make install"
+    ENV.cxx11 if build.cxx11?
 
-    # If Fortran bindings were built, there will be a stra `.mod` file (Fortran
-    # header) in `lib` that needs to be moved to `include`.
-    mv lib + 'mpi.mod', include if (lib + 'mpi.mod').exist?
+    args = %W[
+      --prefix=#{prefix}
+      --disable-dependency-tracking
+      --disable-silent-rules
+      --enable-ipv6
+      --with-libevent=#{Formula["libevent"].opt_prefix}
+    ]
+    if build.include? 'disable-fortran'
+      args << '--disable-mpi-f77' << '--disable-mpi-f90'
+    end
+
+    if build.include? 'enable-mpi-thread-multiple'
+      args << '--enable-mpi-thread-multiple'
+    end
+
+    system './configure', *args
+    system 'make', 'all'
+    system 'make', 'check'
+    system 'make', 'install'
+
+    # If Fortran bindings were built, there will be stray `.mod` files
+    # (Fortran header) in `lib` that need to be moved to `include`.
+    include.install Dir["#{lib}/*.mod"]
+
+    # Move vtsetup.jar from bin to libexec.
+    libexec.install bin/'vtsetup.jar'
+    inreplace bin/'vtsetup', '$bindir/vtsetup.jar', '$prefix/libexec/vtsetup.jar'
   end
 end

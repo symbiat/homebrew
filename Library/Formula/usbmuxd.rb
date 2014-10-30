@@ -1,17 +1,28 @@
-require 'formula'
+require "formula"
 
 class Usbmuxd < Formula
-  homepage 'http://marcansoft.com/blog/iphonelinux/usbmuxd/'
-  url 'http://marcansoft.com/uploads/usbmuxd/usbmuxd-1.0.7.tar.bz2'
-  md5 '6f431541f3177fa06aa6df9ceecb2da0'
+  homepage "http://www.libimobiledevice.org"
+  url "http://www.libimobiledevice.org/downloads/libusbmuxd-1.0.9.tar.bz2"
+  sha1 "7b05ee971ba277591b76040078df598e3710f6db"
 
-  depends_on 'cmake' => :build
-  depends_on 'libusb'
-  depends_on 'libplist'
+  head "http://cgit.sukimashita.com/usbmuxd.git"
+
+  bottle do
+    cellar :any
+    revision 1
+    sha1 "df155e8fd46fb368a27359dfb1d3e38748e62520" => :yosemite
+    sha1 "111014819a0d4351ddb074e917f399a74bcf1442" => :mavericks
+    sha1 "f23f5dee72baff05e14f59e0b1adbc52e9d2918d" => :mountain_lion
+  end
+
+  depends_on "pkg-config" => :build
+  depends_on "libusb"
+  depends_on "libplist"
 
   def install
-    inreplace 'Modules/VersionTag.cmake', '"sh"', '"bash"'
-    system "cmake #{std_cmake_parameters} -DLIB_SUFFIX='' ."
+    system "./configure", "--disable-dependency-tracking",
+                          "--disable-silent-rules",
+                          "--prefix=#{prefix}"
     system "make install"
   end
 end

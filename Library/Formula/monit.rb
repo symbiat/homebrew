@@ -1,9 +1,16 @@
-require 'formula'
+require "formula"
 
 class Monit < Formula
-  url 'http://mmonit.com/monit/dist/monit-5.3.2.tar.gz'
-  homepage 'http://mmonit.com/monit/'
-  sha256 '406a06ac912525c8e76066d07235c848466b331532b2b3de931b61fe455ae915'
+  homepage "http://mmonit.com/monit/"
+  url "http://mmonit.com/monit/dist/monit-5.9.tar.gz"
+  sha1 "f5fd22e865670ee4e538b2cc040ced880ba52a4f"
+
+  bottle do
+    cellar :any
+    sha1 "cf32163d1a47c0a7b5588890ee4ef1edb32f31a7" => :mavericks
+    sha1 "a0ca615a07138b15aa148c3eff51a53ecbf8c562" => :mountain_lion
+    sha1 "ab2521e15d9b0d565c058c22db4c2c134fe7239b" => :lion
+  end
 
   def install
     system "./configure", "--prefix=#{prefix}",
@@ -12,7 +19,7 @@ class Monit < Formula
     system "make install"
   end
 
-  def test
-    system "monit -h"
+  test do
+    system "#{bin}/monit", "-h"
   end
 end

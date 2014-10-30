@@ -1,29 +1,28 @@
-require 'formula'
+require "formula"
 
 class Portaudio < Formula
-  url 'http://www.portaudio.com/archives/pa_stable_v19_20111121.tgz'
-  homepage 'http://www.portaudio.com'
-  md5 '25c85c1cc5e9e657486cbc299c6c035a'
+  homepage "http://www.portaudio.com"
+  url "http://www.portaudio.com/archives/pa_stable_v19_20140130.tgz"
+  sha1 "526a7955de59016a06680ac24209ecb6ce05527d"
+  head "https://subversion.assembla.com/svn/portaudio/portaudio/trunk/", :using => :svn
 
-  depends_on 'pkg-config' => :build
-
-  fails_with_llvm :build => 2334
-
-  def options
-    [["--universal", "Build a universal binary."]]
+  bottle do
+    cellar :any
+    sha1 "dd0697d98af452ef4508c80bb1148f2e8df21c7c" => :mavericks
+    sha1 "97a88511e3068a00350867b67cf272b54f118a85" => :mountain_lion
+    sha1 "b9ea51a124685cb8b872c7ec9f0cdc02bbdee8de" => :lion
   end
 
+  depends_on "pkg-config" => :build
+
+  option :universal
+
   def install
-    ENV.universal_binary if ARGV.build_universal?
-
-    args = [ "--prefix=#{prefix}",
-             "--disable-debug",
-             "--disable-dependency-tracking",
-             # portaudio builds universal unless told not to
-             "--enable-mac-universal=#{ARGV.build_universal? ? 'yes' : 'no'}" ]
-
-    system "./configure", *args
-    system "make install"
+    system "./configure", "--prefix=#{prefix}",
+                          "--disable-debug",
+                          "--disable-dependency-tracking",
+                          "--enable-mac-universal=#{build.universal? ? 'yes' : 'no'}"
+    system "make", "install"
 
     # Need 'pa_mac_core.h' to compile PyAudio
     include.install "include/pa_mac_core.h"

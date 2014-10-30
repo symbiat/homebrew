@@ -2,12 +2,10 @@ require 'formula'
 
 class Gradle < Formula
   homepage 'http://www.gradle.org/'
-  url 'http://services.gradle.org/distributions/gradle-1.0-milestone-8a-bin.zip'
-  md5 '7c0bfa1b25ea523f748a4217a1e47f5b'
-  version '1.0-milestone-8a'
+  url 'https://downloads.gradle.org/distributions/gradle-2.1-bin.zip'
+  sha1 'b8fa88f4053452b0b09f159b8668ce08e4dc5fa8'
 
   def install
-    rm_f Dir["bin/*.bat"]
     libexec.install %w[bin lib]
     bin.install_symlink libexec+'bin/gradle'
   end

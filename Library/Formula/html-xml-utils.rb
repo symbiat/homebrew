@@ -1,13 +1,15 @@
 require 'formula'
 
 class HtmlXmlUtils < Formula
-  url 'http://www.w3.org/Tools/HTML-XML-utils/html-xml-utils-5.5.tar.gz'
   homepage 'http://www.w3.org/Tools/HTML-XML-utils/'
-  md5 '28c58add86e35a60e602a029c8e2f04b'
+  url 'http://www.w3.org/Tools/HTML-XML-utils/html-xml-utils-6.7.tar.gz'
+  sha1 'f67fc705802ef0b10b9bf84c5b2fa4253b260acd'
 
   def install
-    system "./configure", "--disable-debug", "--disable-dependency-tracking", "--prefix=#{prefix}"
+    ENV.append 'CFLAGS', '-std=gnu89'
+    system "./configure", "--disable-dependency-tracking", "--prefix=#{prefix}"
     system "make"
+    ENV.j1 # install is not thread-safe
     system "make install"
   end
 end

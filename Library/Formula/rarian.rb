@@ -3,14 +3,18 @@ require 'formula'
 class Rarian < Formula
   homepage 'http://rarian.freedesktop.org/'
   url 'http://rarian.freedesktop.org/Releases/rarian-0.8.1.tar.bz2'
-  md5 '75091185e13da67a0ff4279de1757b94'
+  sha1 '9b3f1bad1cdbb0de51d6f74431b20eb3647edc5a'
+
+  bottle do
+    sha1 "7bcb93479d64a03980ea11928e21329388735885" => :yosemite
+    sha1 "757f09991a0a272b650a9b6f2ad08e422d410579" => :mavericks
+    sha1 "20352610cf52d4704a02c021b32ace3f00e0aa4c" => :mountain_lion
+  end
+
+  conflicts_with 'scrollkeeper',
+    :because => "rarian and scrollkeeper install the same binaries."
 
   def install
-    if Formula.factory('scrollkeeper').installed?
-      opoo "rarian conflicts with scrollkeeper. Your scrollkeeper binaries will be overwritten.
-         If this bothers you, you can restore scrollkeeper with `brew link scrollkeeper`."
-    end
-
     system "./configure", "--disable-dependency-tracking",
                           "--prefix=#{prefix}"
     system "make install"

@@ -1,11 +1,11 @@
 require 'formula'
 
 class VirtualhostSh < Formula
-  url 'https://github.com/pgib/virtualhost.sh/tarball/1.23'
-  homepage 'https://github.com/pgib/virtualhost.sh'
-  md5 'c64f7fa01abfae56853e8af39b3913cb'
+  homepage 'https://github.com/virtualhost/virtualhost.sh'
+  url 'https://github.com/virtualhost/virtualhost.sh/archive/1.32.tar.gz'
+  sha1 'dc307937e10c2a5948c59ff2ece6495763415b77'
 
-  head 'https://github.com/pgib/virtualhost.sh.git'
+  head 'https://github.com/virtualhost/virtualhost.sh.git'
 
   def install
     bin.install 'virtualhost.sh'

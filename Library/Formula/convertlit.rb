@@ -3,7 +3,7 @@ require 'formula'
 class Convertlit < Formula
   homepage 'http://www.convertlit.com/'
   url 'http://www.convertlit.com/clit18src.zip'
-  md5 'd691d4729485fe5d73e3f0937d8fb42e'
+  sha1 '0fa9aead468bd8640c49374d46d78d2a3e79489f'
   version '1.8'
 
   depends_on 'libtommath'
@@ -14,13 +14,8 @@ class Convertlit < Formula
       s.gsub! "../libtommath-0.30/libtommath.a", "#{HOMEBREW_PREFIX}/lib/libtommath.a"
     end
 
-    cd "lib" do
-      system "make"
-    end
-    cd "../clit18" do
-      system "make"
-    end
-
-    bin.install 'clit'
+    system "make", "-C", "lib"
+    system "make", "-C", "clit18"
+    bin.install "clit18/clit"
   end
 end

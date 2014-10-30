@@ -1,30 +1,40 @@
-require 'formula'
+require "formula"
 
 class Pixman < Formula
-  homepage 'http://www.cairographics.org/'
-  url 'http://cairographics.org/releases/pixman-0.24.2.tar.gz'
-  sha1 'acfc724d8032d3c0677b4466807e120e0c867678'
+  homepage "http://cairographics.org/"
+  url "http://cairographics.org/releases/pixman-0.32.6.tar.gz"
+  sha256 "3dfed13b8060eadabf0a4945c7045b7793cc7e3e910e748a8bb0f0dc3e794904"
 
-  depends_on 'pkg-config' => :build
+  bottle do
+    cellar :any
+    revision 1
+    sha1 "8f47ec83a3ce8bf6bf41676b3143286c8dbb85bd" => :yosemite
+    sha1 "9670f838299329540839e49026849db0f394f261" => :mavericks
+    sha1 "9012f57f5b65b3f1a3dfec6b91be7f66e955a3e4" => :mountain_lion
+  end
 
-  def options
-    [["--universal", "Build a universal binary."]]
+  depends_on "pkg-config" => :build
+
+  keg_only :provided_pre_mountain_lion
+
+  option :universal
+
+  fails_with :llvm do
+    build 2336
+    cause <<-EOS.undent
+      Building with llvm-gcc causes PDF rendering issues in Cairo.
+      https://trac.macports.org/ticket/30370
+      See Homebrew issues #6631, #7140, #7463, #7523.
+      EOS
   end
 
   def install
-    ENV.universal_binary if ARGV.build_universal?
-    if ENV.compiler == :llvm
-      if MacOS.xcode_version >= "4.1"
-        ENV.clang
-      else
-        ENV.gcc_4_2
-      end
-    end
+    ENV.universal_binary if build.universal?
 
-    # Disable gtk as it is only used to build tests
     system "./configure", "--disable-dependency-tracking",
+                          "--disable-silent-rules",
                           "--prefix=#{prefix}",
-                          "--enable-gtk=no"
-    system "make install"
+                          "--disable-gtk"
+    system "make", "install"
   end
 end

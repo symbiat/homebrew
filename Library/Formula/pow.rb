@@ -1,34 +1,34 @@
-require 'formula'
+require "formula"
 
 class Pow < Formula
-  url 'http://get.pow.cx/versions/0.3.2.tar.gz'
-  homepage 'http://pow.cx/'
-  md5 '2e70a1b731160a0dc79d2b6203f258f7'
+  homepage "http://pow.cx/"
+  url "http://get.pow.cx/versions/0.5.0.tar.gz"
+  sha1 "ef44f886a444340b91fb28e2fab3ce5471837a08"
 
-  depends_on 'node'
+  depends_on "node"
 
   def install
-    (prefix+'pow').install Dir['*']
-
-    bin.mkdir
-    File.open("#{bin}/pow", 'w') do |f|
-      f.write <<-EOS.undent
-        #!/bin/sh
-        export POW_BIN="#{HOMEBREW_PREFIX}/bin/pow"
-        exec "#{HOMEBREW_PREFIX}/bin/node" "#{prefix}/pow/lib/command.js" "$@"
-      EOS
-    end
-    system "chmod +x #{bin}/pow"
+    libexec.install Dir["*"]
+    (bin/"pow").write <<-EOS.undent
+      #!/bin/sh
+      export POW_BIN="#{bin}/pow"
+      exec "#{Formula["node"].opt_bin}/node" "#{libexec}/lib/command.js" "$@"
+    EOS
   end
 
   def caveats;
     <<-EOS.undent
-      Sets up firewall rules to forward port 80 to Pow:
-        sudo pow --install-system
+      Create the required host directories:
+        mkdir -p ~/Library/Application\\ Support/Pow/Hosts
+        ln -s ~/Library/Application\\ Support/Pow/Hosts ~/.pow
 
-      Installs launchd agent to start on login:
+      Setup port 80 forwarding and launchd agents:
+        sudo pow --install-system
         pow --install-local
 
+      Load launchd agents:
+        sudo launchctl load -w /Library/LaunchDaemons/cx.pow.firewall.plist
+        launchctl load -w ~/Library/LaunchAgents/cx.pow.powd.plist
     EOS
   end
 end

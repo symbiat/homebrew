@@ -1,20 +1,23 @@
 require 'formula'
 
 class Roundup < Formula
-  url 'https://github.com/bmizerany/roundup/tarball/v0.0.5'
-  homepage 'http://bmizerany.github.com/roundup'
-  md5 '74623a63f4386286caafdec8b9c0f84d'
+  homepage 'http://bmizerany.github.io/roundup'
+  url 'https://github.com/bmizerany/roundup/archive/v0.0.5.tar.gz'
+  sha1 '76ad889ed8e4c32d24847ba2848a8515199e0966'
+
   head 'https://github.com/bmizerany/roundup.git'
 
   def install
-    system "./configure", "--prefix=#{prefix}", "--bindir=#{bin}",
-                          "--mandir=#{man}", "--sysconfdir=#{etc}",
+    system "./configure", "--prefix=#{prefix}",
+                          "--bindir=#{bin}",
+                          "--mandir=#{man}",
+                          "--sysconfdir=#{etc}",
                           "--datarootdir=#{share}"
     system "make"
     system "make install"
   end
 
-  def test
-    system "roundup"
+  test do
+    system "#{bin}/roundup", "-v"
   end
 end

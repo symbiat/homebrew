@@ -1,14 +1,17 @@
-require 'formula'
+require "formula"
 
 class AvroC < Formula
-  homepage 'http://avro.apache.org/'
-  url 'http://www.apache.org/dyn/closer.cgi?path=avro/avro-1.6.1/c/avro-c-1.6.1.tar.gz'
-  md5 'd5c74692f9c4ff2f642b69fff56a6ae3'
+  homepage "http://avro.apache.org/"
+  url "http://www.apache.org/dyn/closer.cgi?path=avro/avro-1.7.7/c/avro-c-1.7.7.tar.gz"
+  sha1 "cbb698682d662c5e0abec023dcd37ce1f3db80d4"
 
-  depends_on 'cmake' => :build
+  # probably should be an optional dep
+  conflicts_with "xz"
+
+  depends_on "cmake" => :build
 
   def install
-    system "cmake #{std_cmake_parameters} ."
+    system "cmake", ".", *std_cmake_args
     system "make install"
   end
 end

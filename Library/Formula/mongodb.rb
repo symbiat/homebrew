@@ -1,96 +1,142 @@
-require 'formula'
+require "formula"
 
 class Mongodb < Formula
-  homepage 'http://www.mongodb.org/'
+  homepage "https://www.mongodb.org/"
 
-  if Hardware.is_64_bit? and not ARGV.build_32_bit?
-    url 'http://fastdl.mongodb.org/osx/mongodb-osx-x86_64-2.0.2.tgz'
-    md5 '65d9df2b1e8d2bf2c9aef30e35d1d9f0'
-    version '2.0.2-x86_64'
-  else
-    url 'http://fastdl.mongodb.org/osx/mongodb-osx-i386-2.0.2.tgz'
-    md5 '5eba72d2e348618cf4a905bba1bd9bb6'
-    version '2.0.2-i386'
+  stable do
+    url "https://fastdl.mongodb.org/src/mongodb-src-r2.6.5.tar.gz"
+    sha1 "f5a68505a0de1152b534d62a8f0147d258d503a0"
+
+    # Review this patch with the next stable release.
+    # Note it is a different patch to the one applied to all builds further below.
+    # This is already fixed in the devel & HEAD builds.
+    if MacOS.version == :yosemite
+      patch do
+        url "https://github.com/mongodb/mongo/commit/759b6e8.diff"
+        sha1 "63d901ac81681fbe8b92dc918954b247990ab2fb"
+      end
+    end
   end
 
-  skip_clean :all
+  bottle do
+    revision 2
+    sha1 "e6da509908fdacf9eb0f16e850e0516cd0898072" => :yosemite
+    sha1 "5ab96fe864e725461eea856e138417994f50bb32" => :mavericks
+    sha1 "193e639b7b79fbb18cb2e0a6bbabfbc9b8cbc042" => :mountain_lion
+  end
 
-  def options
-    [['--32-bit', 'Build 32-bit only.']]
+  devel do
+    url "https://fastdl.mongodb.org/src/mongodb-src-r2.7.7.tar.gz"
+    sha1 "ce223f5793bdf5b3e1420b0ede2f2403e9f94e5a"
+
+    # Remove this with the next devel release. Already merged in HEAD.
+    # https://github.com/mongodb/mongo/commit/8b8e90fb
+    patch do
+      url "https://github.com/mongodb/mongo/commit/8b8e90fb.diff"
+      sha1 "9f9ce609c7692930976690cae68aa4fce1f8bca3"
+    end
+  end
+
+  # HEAD is currently failing. See https://jira.mongodb.org/browse/SERVER-15555
+  head "https://github.com/mongodb/mongo.git"
+
+  option "with-boost", "Compile using installed boost, not the version shipped with mongodb"
+
+  depends_on "boost" => :optional
+  depends_on :macos => :snow_leopard
+  depends_on "scons" => :build
+  depends_on "openssl" => :optional
+
+  # Review this patch with each release.
+  # This modifies the SConstruct file to include 10.10 as an accepted build option.
+  if MacOS.version == :yosemite
+    patch do
+      url "https://raw.githubusercontent.com/DomT4/scripts/fbc0cda/Homebrew_Resources/Mongodb/mongoyosemite.diff"
+      sha1 "f4824e93962154aad375eb29527b3137d07f358c"
+    end
   end
 
   def install
-    # Copy the prebuilt binaries to prefix
-    prefix.install Dir['*']
+    args = %W[
+      --prefix=#{prefix}
+      -j#{ENV.make_jobs}
+      --cc=#{ENV.cc}
+      --cxx=#{ENV.cxx}
+      --osx-version-min=#{MacOS.version}
+    ]
 
-    # Create the data and log directories under /var
-    (var+'mongodb').mkpath
-    (var+'log/mongodb').mkpath
+    # --full installs development headers and client library, not just binaries
+    # (only supported pre-2.7)
+    args << "--full" if build.stable?
+    args << "--use-system-boost" if build.with? "boost"
+    args << "--64" if MacOS.prefer_64_bit?
 
-    # Write the configuration files and launchd script
-    (prefix+'mongod.conf').write mongodb_conf
-    plist_path.write startup_plist
-    plist_path.chmod 0644
-  end
+    if build.with? "openssl"
+      args << "--ssl" << "--extrapath=#{Formula["openssl"].opt_prefix}"
+    end
 
-  def caveats; <<-EOS.undent
-    If this is your first install, automatically load on login with:
-        mkdir -p ~/Library/LaunchAgents
-        cp #{plist_path} ~/Library/LaunchAgents/
-        launchctl load -w ~/Library/LaunchAgents/#{plist_path.basename}
+    scons "install", *args
 
-    If this is an upgrade and you already have the #{plist_path.basename} loaded:
-        launchctl unload -w ~/Library/LaunchAgents/#{plist_path.basename}
-        cp #{plist_path} ~/Library/LaunchAgents/
-        launchctl load -w ~/Library/LaunchAgents/#{plist_path.basename}
+    (buildpath+"mongod.conf").write mongodb_conf
+    etc.install "mongod.conf"
 
-    Or start it manually:
-        mongod run --config #{prefix}/mongod.conf
-
-    The launchctl plist above expects the config file to be at #{etc}/mongod.conf.
-    If this is a first install, you can copy one from #{prefix}/mongod.conf:
-        cp #{prefix}/mongod.conf #{etc}/mongod.conf
-    EOS
+    (var+"mongodb").mkpath
+    (var+"log/mongodb").mkpath
   end
 
   def mongodb_conf; <<-EOS.undent
-    # Store data in #{var}/mongodb instead of the default /data/db
-    dbpath = #{var}/mongodb
-
-    # Only accept local connections
-    bind_ip = 127.0.0.1
+    systemLog:
+      destination: file
+      path: #{var}/log/mongodb/mongo.log
+      logAppend: true
+    storage:
+      dbPath: #{var}/mongodb
+    net:
+      bindIp: 127.0.0.1
     EOS
   end
 
-  def startup_plist
-    return <<-EOS
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>Label</key>
-  <string>#{plist_name}</string>
-  <key>ProgramArguments</key>
-  <array>
-    <string>#{HOMEBREW_PREFIX}/bin/mongod</string>
-    <string>run</string>
-    <string>--config</string>
-    <string>#{etc}/mongod.conf</string>
-  </array>
-  <key>RunAtLoad</key>
-  <true/>
-  <key>KeepAlive</key>
-  <false/>
-  <key>UserName</key>
-  <string>#{`whoami`.chomp}</string>
-  <key>WorkingDirectory</key>
-  <string>#{HOMEBREW_PREFIX}</string>
-  <key>StandardErrorPath</key>
-  <string>#{var}/log/mongodb/output.log</string>
-  <key>StandardOutPath</key>
-  <string>#{var}/log/mongodb/output.log</string>
-</dict>
-</plist>
-EOS
+  plist_options :manual => "mongod --config #{HOMEBREW_PREFIX}/etc/mongod.conf"
+
+  def plist; <<-EOS.undent
+    <?xml version="1.0" encoding="UTF-8"?>
+    <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+    <plist version="1.0">
+    <dict>
+      <key>Label</key>
+      <string>#{plist_name}</string>
+      <key>ProgramArguments</key>
+      <array>
+        <string>#{opt_bin}/mongod</string>
+        <string>--config</string>
+        <string>#{etc}/mongod.conf</string>
+      </array>
+      <key>RunAtLoad</key>
+      <true/>
+      <key>KeepAlive</key>
+      <false/>
+      <key>WorkingDirectory</key>
+      <string>#{HOMEBREW_PREFIX}</string>
+      <key>StandardErrorPath</key>
+      <string>#{var}/log/mongodb/output.log</string>
+      <key>StandardOutPath</key>
+      <string>#{var}/log/mongodb/output.log</string>
+      <key>HardResourceLimits</key>
+      <dict>
+        <key>NumberOfFiles</key>
+        <integer>1024</integer>
+      </dict>
+      <key>SoftResourceLimits</key>
+      <dict>
+        <key>NumberOfFiles</key>
+        <integer>1024</integer>
+      </dict>
+    </dict>
+    </plist>
+    EOS
+  end
+
+  test do
+    system "#{bin}/mongod", "--sysinfo"
   end
 end

@@ -1,38 +1,47 @@
-require 'extend/ENV'
-require 'hardware'
+require "extend/ENV"
 
-module Homebrew extend self
+module Homebrew
   def __env
-    ENV.extend(HomebrewEnvExtension)
+    ENV.activate_extensions!
+    ENV.deps = ARGV.formulae.map(&:name) if superenv?
     ENV.setup_build_environment
     ENV.universal_binary if ARGV.build_universal?
-    dump_build_env ENV
+
+    if $stdout.tty?
+      dump_build_env ENV
+    else
+      build_env_keys(ENV).each do |key|
+        puts "export #{key}=\"#{ENV[key]}\""
+      end
+    end
+  end
+
+  def build_env_keys env
+    %w[
+      CC CXX LD OBJC OBJCXX
+      HOMEBREW_CC HOMEBREW_CXX
+      CFLAGS CXXFLAGS CPPFLAGS LDFLAGS SDKROOT MAKEFLAGS
+      CMAKE_PREFIX_PATH CMAKE_INCLUDE_PATH CMAKE_LIBRARY_PATH CMAKE_FRAMEWORK_PATH
+      MACOSX_DEPLOYMENT_TARGET PKG_CONFIG_PATH PKG_CONFIG_LIBDIR
+      HOMEBREW_DEBUG HOMEBREW_MAKE_JOBS HOMEBREW_VERBOSE
+      HOMEBREW_SVN HOMEBREW_GIT
+      HOMEBREW_SDKROOT HOMEBREW_BUILD_FROM_SOURCE
+      MAKE GIT CPP
+      ACLOCAL_PATH PATH CPATH].select { |key| env.key?(key) }
   end
 
   def dump_build_env env
-    puts %["--use-clang" was specified] if ARGV.include? '--use-clang'
-    puts %["--use-llvm" was specified] if ARGV.include? '--use-llvm'
-    puts %["--use-gcc" was specified] if ARGV.include? '--use-gcc'
+    keys = build_env_keys(env)
+    keys -= %w[CC CXX OBJC OBJCXX] if env["CC"] == env["HOMEBREW_CC"]
 
-    %w[ CC CXX LD ].each do |k|
-      value = env[k]
-      if value
-        results = value
-        if value =~ %r{/usr/bin/xcrun (.*)}
-          path = `/usr/bin/xcrun -find #{$1}`
-          results += " => #{path}"
-        elsif File.exists? value and File.symlink? value
-          results += " => #{Pathname.new(value).realpath}"
-        end
-        puts "#{k}: #{results}"
+    keys.each do |key|
+      value = env[key]
+      s = "#{key}: #{value}"
+      case key
+      when "CC", "CXX", "LD"
+        s << " => #{Pathname.new(value).realpath}" if File.symlink?(value)
       end
-    end
-
-    %w[ CFLAGS CXXFLAGS CPPFLAGS LDFLAGS MACOSX_DEPLOYMENT_TARGET MAKEFLAGS PKG_CONFIG_PATH
-        HOMEBREW_BUILD_FROM_SOURCE HOMEBREW_DEBUG HOMEBREW_MAKE_JOBS HOMEBREW_VERBOSE
-        HOMEBREW_USE_CLANG HOMEBREW_USE_GCC HOMEBREW_USE_LLVM HOMEBREW_SVN ].each do |k|
-      value = env[k]
-      puts "#{k}: #{value}" if value
+      puts s
     end
   end
 end

@@ -1,73 +1,50 @@
-require 'formula'
-
-def use_luajit?; ARGV.include? '--with-luajit'; end
+require "formula"
 
 class Luarocks < Formula
-  url 'http://luarocks.org/releases/luarocks-2.0.4.1.tar.gz'
-  homepage 'http://luarocks.org'
-  md5 '2c7caccce3cdf236e6f9aca7bec9bdea'
+  homepage "http://luarocks.org"
+  url "http://luarocks.org/releases/luarocks-2.2.0.tar.gz"
+  sha1 "e2de00f070d66880f3766173019c53a23229193d"
+  revision 1
 
-  depends_on use_luajit? ? 'luajit' : 'lua'
-
-  fails_with_llvm "Lua itself compiles with llvm, but may fail when other software tries to link."
-
-  def patches
-    DATA if HOMEBREW_PREFIX.to_s == '/usr/local'
+  bottle do
+    sha1 "0cebc71f659d0c4ad071ca92d58af25e2282440d" => :mavericks
+    sha1 "a7194e000987a02bb3b990dffdb59b6edaa4a53b" => :mountain_lion
+    sha1 "105125da47afe836fd0aac346be43c6c4a927abc" => :lion
   end
 
-  def options
-    [['--with-luajit', 'Use LuaJIT instead of the stock Lua.']]
+  head "https://github.com/keplerproject/luarocks.git"
+
+  depends_on "lua"
+
+  fails_with :llvm do
+    cause "Lua itself compiles with llvm, but may fail when other software tries to link."
   end
 
   def install
     # Install to the Cellar, but direct modules to HOMEBREW_PREFIX
+    # Specify where the Lua is to avoid accidental conflict.
+    lua_prefix = Formula["lua"].opt_prefix
+
     args = ["--prefix=#{prefix}",
             "--rocks-tree=#{HOMEBREW_PREFIX}",
-            "--sysconfdir=#{etc}/luarocks"]
-
-    if use_luajit?
-      args << "--with-lua-include=#{HOMEBREW_PREFIX}/include/luajit-2.0"
-      args << "--lua-suffix=jit"
-    end
+            "--sysconfdir=#{etc}/luarocks",
+            "--with-lua=#{lua_prefix}",
+            "--lua-version=5.2"]
 
     system "./configure", *args
-    system "make"
-    system "make install"
+    system "make", "build"
+    system "make", "install"
   end
 
   def caveats; <<-EOS.undent
-    Luarocks now "just works" but this means any rocks you installed previously
-    will need to be moved from `lib/luarocks/lib/luarocks` to `lib/luarocks`.
-    You'll probably have a better time of it all if you just reinstall them.
+    Rocks install to: #{HOMEBREW_PREFIX}/lib/luarocks/rocks
+
+    You may need to run `luarocks install` inside the Homebrew build
+    environment for rocks to successfully build. To do this, first run `brew sh`.
     EOS
   end
 
-  def test
-    opoo "Luarocks test script installs 'lpeg'"
-    system "#{bin}/luarocks install lpeg"
-    system "lua", "-llpeg", "-e", 'print ("Hello World!")'
+  test do
+    system "#{bin}/luarocks", "install", "say"
   end
 end
-
-
-# this patch because we set the permissions of /usr/local to root owned
-# not user writable to be "good" citizens of /usr/local. Actually LUA is being
-# pedantic since all the directories it wants under /usr/local are writable
-# so we just return true. Naughty, but I don't know LUA and don't want to
-# write a better patch.
-__END__
-diff --git a/src/luarocks/fs/lua.lua b/src/luarocks/fs/lua.lua
-index 3a547fe..ca4ddc5 100644
---- a/src/luarocks/fs/lua.lua
-+++ b/src/luarocks/fs/lua.lua
-@@ -619,10 +619,5 @@ end
- -- @return boolean or (boolean, string): true on success, false on failure,
- -- plus an error message.
- function check_command_permissions(flags)
--   local root_dir = path.root_dir(cfg.rocks_dir)
--   if not flags["local"] and not fs.is_writable(root_dir) then
--      return nil, "Your user does not have write permissions in " .. root_dir ..
--                  " \n-- you may want to run as a privileged user or use your local tree with --local."
--   end
-    return true
- end

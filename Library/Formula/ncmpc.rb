@@ -1,9 +1,9 @@
 require 'formula'
 
 class Ncmpc < Formula
-  url 'http://downloads.sourceforge.net/musicpd/ncmpc-0.19.tar.bz2'
   homepage 'http://mpd.wikia.com/wiki/Client:Ncmpc'
-  md5 'd298ad1313ef3a522ef03367f8a1ffc0'
+  url 'http://www.musicpd.org/download/ncmpc/0/ncmpc-0.24.tar.gz'
+  sha1 '15677a727920afff6485c9da30a4c7a522d4630a'
 
   depends_on 'pkg-config' => :build
   depends_on 'gettext'

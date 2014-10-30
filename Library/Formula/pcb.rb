@@ -1,42 +1,41 @@
-require 'formula'
+require "formula"
 
 class Pcb < Formula
-  homepage 'http://pcb.gpleda.org/'
-  url 'http://downloads.sourceforge.net/project/pcb/pcb/pcb-20110918/pcb-20110918.tar.gz'
-  version '20110908'
-  md5 '54bbc997eeb22b85cf21fed54cb8e181'
+  homepage "http://pcb.geda-project.org/"
+  head "git://git.geda-project.org/pcb.git"
+  url "https://downloads.sourceforge.net/project/pcb/pcb/pcb-20140316/pcb-20140316.tar.gz"
+  sha1 "ec714ff136d1817e500e1a9e654e786883b9501e"
 
-  head 'git://git.gpleda.org/pcb.git'
+  option "with-doc", "Build the documentation (requires LaTeX)."
 
-  depends_on 'pkg-config' => :build
-  depends_on 'intltool'
-  depends_on 'gettext'
-  depends_on 'd-bus'
-  depends_on 'gd'
-  depends_on 'glib'
-  depends_on 'gtkglext'
-  depends_on "automake" if MacOS.xcode_version >= "4.3"
+  depends_on "autoconf" => :build
+  depends_on "automake" => :build
+  depends_on "pkg-config" => :build
+  depends_on "intltool" => :build
+  depends_on "gettext"
+  depends_on "d-bus"
+  depends_on "gtk+"
+  depends_on "gd"
+  depends_on "glib"
+  depends_on "gtkglext"
+  depends_on :x11
+  depends_on :tex if build.with? "doc"
 
-  # See comments in intltool formula
-  depends_on 'XML::Parser' => :perl
+  conflicts_with "gts", :because => "both install `include/gts.h`"
 
-  def patches
-    DATA
-  end
+  patch :DATA
 
   def install
-    ENV.x11
-    ENV.append 'ACLOCAL_FLAGS', "-I#{HOMEBREW_PREFIX}/share/aclocal"
+    system "./autogen.sh" if build.head?
+    args = ["--disable-debug", "--disable-dependency-tracking",
+            "--prefix=#{prefix}",
+            "--disable-update-desktop-database",
+            "--disable-update-mime-database"]
+    args << "--disable-doc" if build.without? "doc"
 
-    system "./autogen.sh" if ARGV.build_head?
-
-    system "./configure", "--disable-debug", "--disable-dependency-tracking",
-                          "--prefix=#{prefix}",
-                          "--disable-update-desktop-database",
-                          "--disable-update-mime-database"
-
+    system "./configure", *args
     system "make"
-    system "make install"
+    system "make", "install"
   end
 end
 
@@ -49,9 +48,9 @@ index 15273a6..ff73ca7 100644
 @@ -66,6 +66,7 @@
  #include <dmalloc.h>
  #endif
- 
+
 +typedef GLvoid (*_GLUfuncptr)(GLvoid);
- 
+
  triangle_buffer buffer;
  float global_depth = 0;
 

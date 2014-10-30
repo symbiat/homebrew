@@ -1,29 +1,23 @@
 require 'formula'
 
 class Mogenerator < Formula
-  url 'https://github.com/rentzsch/mogenerator/tarball/1.25'
-  homepage 'http://rentzsch.github.com/mogenerator/'
-  md5 '008f4cc1a96a1ad5acad87cbe4f47e95'
-  head "https://github.com/rentzsch/mogenerator.git"
+  homepage 'http://rentzsch.github.io/mogenerator/'
+  url 'https://github.com/rentzsch/mogenerator/archive/1.28.tar.gz'
+  sha1 '2c92204c76cbe88091494d0730cf986efab8ef1a'
 
-  def install
-    system "xcodebuild -target mogenerator -configuration Release SYMROOT=symroot OBJROOT=objroot"
-    bin.install "symroot/Release/mogenerator"
+  head 'https://github.com/rentzsch/mogenerator.git'
 
-    # Install default demplates
-    (prefix+'templates').install Dir['templates/*.motemplate']
+  bottle do
+    cellar :any
+    sha1 "6a0c63e99ecae49d70b569b5b4507b8352ada961" => :mavericks
+    sha1 "abc1bcf2e7d1ebbb3258023f57e082052061a19c" => :mountain_lion
+    sha1 "fc60b8470f7e5441a599496aa637fd21da83934a" => :lion
   end
 
-  def caveats; <<-EOS.undent
-     A default set of Mogenerator templates have been installed to:
-       #{prefix}/templates
+  depends_on :xcode => :build
 
-     If you haven't written your own templates, you may wish to copy these for
-     your own use:
-
-       mkdir -p "#{ENV['HOME']}/Library/Application Support/mogenerator"
-       cp #{prefix}/templates/*.motemplate "#{ENV['HOME']}/Library/Application Support/mogenerator/"
-
-    EOS
+  def install
+    xcodebuild "-target", "mogenerator", "-configuration", "Release","SYMROOT=symroot", "OBJROOT=objroot"
+    bin.install "symroot/Release/mogenerator"
   end
 end

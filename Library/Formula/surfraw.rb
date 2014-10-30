@@ -1,18 +1,18 @@
-require 'formula'
+require "formula"
 
 class Surfraw < Formula
-  url 'http://surfraw.alioth.debian.org/dist/surfraw-2.2.8.tar.gz'
-  head 'git://git.debian.org/surfraw/surfraw.git'
-  homepage 'http://surfraw.alioth.debian.org/'
-  md5 'e0f571f7a2d109555c26bdb40781a3f2'
+  homepage "http://surfraw.alioth.debian.org/"
+  head "git://git.debian.org/surfraw/surfraw.git"
+  url "http://surfraw.alioth.debian.org/dist/surfraw-2.2.9.tar.gz"
+  sha1 "70bbba44ffc3b1bf7c7c4e0e9f0bdd656698a1c0"
 
   def install
-    system "./prebuild" if ARGV.build_head?
+    system "./prebuild" if build.head?
     system "./configure", "--prefix=#{prefix}",
                           "--sysconfdir=#{etc}",
                           "--with-graphical-browser=open"
     system "make"
-    ENV.j1 # Install using 1 job, or fails on Mac Pro
-    system "make install"
+    ENV.j1
+    system "make", "install"
   end
 end

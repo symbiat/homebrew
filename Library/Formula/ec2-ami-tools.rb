@@ -1,12 +1,9 @@
 require 'formula'
 
-# Require ec2-api-tools to get the base class
-require "#{File.dirname __FILE__}/ec2-api-tools.rb"
-
 class Ec2AmiTools < AmazonWebServicesFormula
-  homepage 'http://developer.amazonwebservices.com/connect/entry.jspa?externalID=368'
-  url 'http://s3.amazonaws.com/ec2-downloads/ec2-ami-tools-1.3-45758.zip'
-  md5 'b3fd0dd779277ba40f0f234bfa309135'
+  homepage 'http://aws.amazon.com/developertools/368'
+  url 'http://ec2-downloads.s3.amazonaws.com/ec2-ami-tools-1.5.3.zip'
+  sha1 'a12a4b4cb9d602e70a51dcf0daad35b412828e4e'
 
   def install
     standard_install

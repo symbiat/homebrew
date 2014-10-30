@@ -1,29 +1,32 @@
-require 'formula'
+require "formula"
 
 class Vimpc < Formula
-  homepage 'http://sourceforge.net/projects/vimpc/'
-  url 'http://downloads.sourceforge.net/project/vimpc/Release%200.05/vimpc-0.05.tar.gz'
-  md5 'f96cdc10827ddfbb53318e9ab4bab93b'
+  homepage "http://sourceforge.net/projects/vimpc/"
+  url "https://downloads.sourceforge.net/project/vimpc/Release%200.09.1/vimpc-0.09.1.tar.gz"
+  sha1 "b4e9790eaf0a25035ba32c2c98993fd6900a2c42"
 
-  head 'https://github.com/richoH/vimpc.git'
+  head do
+    url "https://github.com/boysetsfrog/vimpc.git"
 
-  depends_on 'pkg-config' => :build
-  depends_on 'pcre++'
-  depends_on 'libmpdclient'
-  depends_on "automake" if ARGV.build_head? and MacOS.xcode_version >= "4.3"
+    depends_on "autoconf" => :build
+    depends_on "automake" => :build
+    depends_on "libtool" => :build
+  end
+
+  depends_on "pkg-config" => :build
+  depends_on "boost" => :build unless MacOS.version >= :mavericks
+  depends_on "taglib"
+  depends_on "libmpdclient"
+  depends_on "pcre"
 
   def install
-    if ARGV.build_head?
-      ENV['ACLOCAL_FLAGS'] = "-I #{HOMEBREW_PREFIX}/share/aclocal"
-      system "./autogen.sh"
-    end
-
+    system "./autogen.sh" if build.head?
     system "./configure", "--disable-debug", "--disable-dependency-tracking",
                           "--prefix=#{prefix}"
     system "make install"
   end
 
-  def test
-    system "#{bin}/vimpc -v"
+  test do
+    system "#{bin}/vimpc", "-v"
   end
 end

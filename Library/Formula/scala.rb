@@ -1,45 +1,66 @@
 require 'formula'
 
-class ScalaDocs < Formula
-  homepage 'http://www.scala-lang.org/'
-  url 'http://www.scala-lang.org/downloads/distrib/files/scala-2.9.1.final-devel-docs.tgz'
-  version '2.9.1'
-  md5 '88668b400ec61c8b043e288ddc62b8b8'
-end
-
-class ScalaCompletion < Formula
-  homepage 'http://www.scala-lang.org/'
-  url 'https://raw.github.com/scala/scala-dist/27bc0c25145a8/completion.d/2.9.1/scala'
-  version '2.9.1'
-  md5 '40cb02604b718fd0977a12d932b9e693'
-end
-
 class Scala < Formula
   homepage 'http://www.scala-lang.org/'
-  url 'http://www.scala-lang.org/downloads/distrib/files/scala-2.9.1.final.tgz'
-  version '2.9.1'
-  md5 '1a06eacc7f59f279bf1700c98d5bf19d'
+  url 'http://www.scala-lang.org/files/archive/scala-2.11.2.tgz'
+  sha1 '904e9ee3bb96e8350b1e0f2502a704f836c0cdf1'
 
-  def options
-    [['--with-docs', 'Also install library documentation']]
+  bottle do
+    cellar :any
+    sha1 "da4919e3f11b1d10923e12c20ba50f738db58380" => :mavericks
+    sha1 "15ecc67ac62795c1ae7a9fae01838bea412df6ec" => :mountain_lion
+    sha1 "10784c54d59746277a6f0535ef9d3ff4974fad56" => :lion
   end
 
-  def caveats; <<-EOS.undent
-    Bash completion has been installed to:
-      #{etc}/bash_completion.d
-    EOS
+  option 'with-docs', 'Also install library documentation'
+  option 'with-src', 'Also install sources for IDE support'
+
+  resource 'docs' do
+    url 'http://www.scala-lang.org/files/archive/scala-docs-2.11.2.zip'
+    sha1 '2add2130989c3434b8f6ef30f05ed3dd98ab156a'
+  end
+
+  resource 'src' do
+    url 'https://github.com/scala/scala/archive/v2.11.2.tar.gz'
+    sha1 '52654124565a1706e9e6d0ad7b0969d319628847'
+  end
+
+  resource 'completion' do
+    url 'https://raw.githubusercontent.com/scala/scala-dist/v2.11.2/bash-completion/src/main/resources/completion.d/2.9.1/scala'
+    sha1 'e2fd99fe31a9fb687a2deaf049265c605692c997'
   end
 
   def install
     rm_f Dir["bin/*.bat"]
     doc.install Dir['doc/*']
-    man1.install Dir['man/man1/*']
-    libexec.install Dir['*']
+    share.install "man"
+    libexec.install "bin", "lib"
     bin.install_symlink Dir["#{libexec}/bin/*"]
-    ScalaCompletion.new.brew { (prefix+'etc/bash_completion.d').install 'scala' }
+    bash_completion.install resource('completion')
+    doc.install resource('docs') if build.with? 'docs'
+    libexec.install resource('src').files('src') if build.with? 'src'
 
-    if ARGV.include? '--with-docs'
-      ScalaDocs.new.brew { doc.install Dir['*'] }
-    end
+    # Set up an IntelliJ compatible symlink farm in 'idea'
+    idea = prefix/'idea'
+    idea.install_symlink libexec/'src', libexec/'lib'
+    idea.install_symlink doc => 'doc'
+  end
+
+  def caveats; <<-EOS.undent
+    To use with IntelliJ, set the Scala home to:
+      #{opt_prefix}/idea
+    EOS
+  end
+
+  test do
+    file = testpath/'hello.scala'
+    file.write <<-EOS.undent
+      object Computer {
+        def main(args: Array[String]) {
+          println(2 + 2)
+        }
+      }
+    EOS
+    assert_equal "4", shell_output("#{bin}/scala #{file}").strip
   end
 end

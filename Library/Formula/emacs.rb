@@ -1,84 +1,104 @@
-require 'formula'
+require "formula"
 
 class Emacs < Formula
-  homepage 'http://www.gnu.org/software/emacs/'
-  url 'http://ftpmirror.gnu.org/emacs/emacs-23.4.tar.bz2'
-  mirror '  http://ftp.gnu.org/pub/gnu/emacs/emacs-23.4.tar.bz2'
-  md5 '070c68ad8e3c31fb3cb2414feaf5e6f0'
+  homepage "https://www.gnu.org/software/emacs/"
 
-  fails_with_llvm "Duplicate symbol errors while linking.", :build => 2334
+  stable do
+    url "http://ftpmirror.gnu.org/emacs/emacs-24.4.tar.xz"
+    mirror "https://ftp.gnu.org/pub/gnu/emacs/emacs-24.4.tar.xz"
+    sha256 "47e391170db4ca0a3c724530c7050655f6d573a711956b4cd84693c194a9d4fd"
 
-  # Stripping on Xcode 4 causes malformed object errors.
-  # Just skip everything.
-  skip_clean :all
+    # Fix ns-antialias-text, broken in 24.4, submitted upstream here:
+    # http://lists.gnu.org/archive/html/emacs-devel/2014-10/msg00813.html
 
-  if ARGV.include? "--use-git-head"
-    head 'git://git.sv.gnu.org/emacs.git'
-  else
-    head 'bzr://http://bzr.savannah.gnu.org/r/emacs/trunk'
+    patch do
+      url 'https://gist.githubusercontent.com/scotchi/66edaf426d7375c0f061/raw/b7055ba40a7dd9e8f6f5dd6bbe5c305a78bbbc87/emacs-fix-ns-antialias-text-mac-os.patch'
+      sha1 '6215c59c01dc247dfdec7c89ff2fe84ff28eb1c7'
+    end
   end
 
-  def options
-    [
-      ["--cocoa", "Build a Cocoa version of emacs"],
-      ["--srgb", "Enable sRGB colors in the Cocoa version of emacs"],
-      ["--with-x", "Include X11 support"],
-      ["--use-git-head", "Use Savannah git mirror for HEAD builds"],
-    ]
+  bottle do
+    revision 2
+    sha1 "dbbb5869715475184bb272023559c318fb38c2bb" => :yosemite
+    sha1 "5ed8b3aa255814b41d66d49371c7a37adf63b7ee" => :mavericks
+    sha1 "e2d8d47197695e537de4ba3e01c88c1ba547d81c" => :mountain_lion
   end
 
-  def patches
-    p = []
+  option "cocoa", "Build a Cocoa version of emacs"
+  option "with-x", "Include X11 support"
+  option "use-git-head", "Use Savannah (faster) git mirror for HEAD builds"
+  option "keep-ctags", "Don't remove the ctags executable that emacs provides"
 
-    # Fix for building with Xcode 4; harmless on Xcode 3.x.
-    unless ARGV.build_head?
-      p << DATA
+  head do
+    if build.include? "use-git-head"
+      url "http://git.sv.gnu.org/r/emacs.git"
+    else
+      url "bzr://http://bzr.savannah.gnu.org/r/emacs/trunk"
     end
 
-    if ARGV.include? "--cocoa"
-      # Fullscreen patch, works against 23.3 and HEAD.
-      p << "https://raw.github.com/gist/1746342/702dfe9e2dd79fddd536aa90d561efdeec2ba716"
-    end
+    depends_on "autoconf" => :build
+    depends_on "automake" => :build
+  end
 
-    return p
+  depends_on "pkg-config" => :build
+  depends_on :x11 if build.with? "x"
+  depends_on "d-bus" => :optional
+  depends_on "gnutls" => :optional
+  depends_on "librsvg" => :optional
+  depends_on "imagemagick" => :optional
+  depends_on "mailutils" => :optional
+  depends_on "glib" => :optional
+
+  fails_with :llvm do
+    build 2334
+    cause "Duplicate symbol errors while linking."
   end
 
   def install
+    # HEAD builds blow up when built in parallel as of April 20 2012
+    # FIXME is this still necessary? It's been more than two years, surely any
+    # race conditions would have made it into release by now.
+    ENV.deparallelize unless build.stable?
+
     args = ["--prefix=#{prefix}",
-            "--without-dbus",
             "--enable-locallisppath=#{HOMEBREW_PREFIX}/share/emacs/site-lisp",
             "--infodir=#{info}/emacs"]
-
-    if ARGV.build_head? and File.exists? "./autogen/copy_autogen"
-      opoo "Using copy_autogen"
-      puts "See https://github.com/mxcl/homebrew/issues/4852"
-      system "autogen/copy_autogen"
+    args << "--with-file-notification=gfile" if build.with? "glib"
+    if build.with? "d-bus"
+      args << "--with-dbus"
+    else
+      args << "--without-dbus"
     end
+    if build.with? "gnutls"
+      args << "--with-gnutls"
+    else
+      args << "--without-gnutls"
+    end
+    args << "--with-rsvg" if build.with? "librsvg"
+    args << "--with-imagemagick" if build.with? "imagemagick"
+    args << "--without-popmail" if build.with? "mailutils"
 
-    if ARGV.include? "--cocoa"
-      # Patch for color issues described here:
-      # http://debbugs.gnu.org/cgi/bugreport.cgi?bug=8402
-      if ARGV.include? "--srgb"
-        inreplace "src/nsterm.m",
-          "*col = [NSColor colorWithCalibratedRed: r green: g blue: b alpha: 1.0];",
-          "*col = [NSColor colorWithDeviceRed: r green: g blue: b alpha: 1.0];"
-      end
+    system "./autogen.sh" unless build.stable?
 
+    if build.include? "cocoa"
       args << "--with-ns" << "--disable-ns-self-contained"
       system "./configure", *args
-      system "make bootstrap"
-      system "make install"
+      system "make"
+      system "make", "install"
       prefix.install "nextstep/Emacs.app"
 
-      unless ARGV.build_head?
-        bin.mkpath
-        ln_s prefix+'Emacs.app/Contents/MacOS/Emacs', bin+'emacs'
-        ln_s prefix+'Emacs.app/Contents/MacOS/bin/emacsclient', bin
-        ln_s prefix+'Emacs.app/Contents/MacOS/bin/etags', bin
-      end
+      # Replace the symlink with one that avoids starting Cocoa.
+      (bin/"emacs").unlink # Kill the existing symlink
+      (bin/"emacs").write <<-EOS.undent
+        #!/bin/bash
+        exec #{prefix}/Emacs.app/Contents/MacOS/Emacs -nw  "$@"
+      EOS
     else
-      if ARGV.include? "--with-x"
-        ENV.x11
+      if build.with? "x"
+        # These libs are not specified in xft's .pc. See:
+        # https://trac.macports.org/browser/trunk/dports/editors/emacs/Portfile#L74
+        # https://github.com/Homebrew/homebrew/issues/8156
+        ENV.append "LDFLAGS", "-lfreetype -lfontconfig"
         args << "--with-x"
         args << "--with-gif=no" << "--with-tiff=no" << "--with-jpeg=no"
       else
@@ -87,72 +107,45 @@ class Emacs < Formula
 
       system "./configure", *args
       system "make"
-      system "make install"
+      system "make", "install"
+    end
+
+    # Follow MacPorts and don't install ctags from Emacs. This allows Vim
+    # and Emacs and ctags to play together without violence.
+    unless build.include? "keep-ctags"
+      (bin/"ctags").unlink
+      (man1/"ctags.1.gz").unlink
     end
   end
 
   def caveats
-    s = ""
-    if ARGV.include? "--cocoa"
-      s += <<-EOS.undent
-        Emacs.app was installed to:
-          #{prefix}
-
-        Command-line emacs can be used by setting up an alias:
-          alias emacs="#{prefix}/Emacs.app/Contents/MacOS/Emacs -nw"
-
-         To link the application to a normal Mac OS X location:
-           brew linkapps
-         or:
-           ln -s #{prefix}/Emacs.app /Applications
-
+    if build.include? "cocoa" then <<-EOS.undent
+      A command line wrapper for the cocoa app was installed to:
+        #{bin}/emacs
       EOS
     end
+  end
 
-    s += <<-EOS.undent
-      Because the official bazaar repository might be slow, we include an option for
-      pulling HEAD from an unofficial Git mirror:
-
-        brew install emacs --HEAD --use-git-head
-
-      There is inevitably some lag between checkins made to the official Emacs bazaar
-      repository and their appearance on the Savannah mirror. See
-      http://git.savannah.gnu.org/cgit/emacs.git for the mirror's status. The Emacs
-      devs do not provide support for the git mirror, and they might reject bug
-      reports filed with git version information. Use it at your own risk.
+  def plist; <<-EOS.undent
+    <?xml version="1.0" encoding="UTF-8"?>
+    <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+    <plist version="1.0">
+    <dict>
+      <key>Label</key>
+      <string>#{plist_name}</string>
+      <key>ProgramArguments</key>
+      <array>
+        <string>#{opt_bin}/emacs</string>
+        <string>--daemon</string>
+      </array>
+      <key>RunAtLoad</key>
+      <true/>
+    </dict>
+    </plist>
     EOS
+  end
 
-    return s
+  test do
+    assert_equal "4", shell_output("#{bin}/emacs --batch --eval=\"(print (+ 2 2))\"").strip
   end
 end
-
-__END__
-# Fix for the titlebar issue on Mac OS X 10.7
-diff --git a/src/nsterm.m b/src/nsterm.m
-index 30b73c2..234b8b5 100644
---- a/src/nsterm.m
-+++ b/src/nsterm.m
-@@ -5107,6 +5107,9 @@ ns_term_shutdown (int sig)
-   win = [[EmacsWindow alloc]
-             initWithContentRect: r
-                       styleMask: (NSResizableWindowMask |
-+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_7
-+                                  NSTitledWindowMask |
-+#endif
-                                   NSMiniaturizableWindowMask |
-                                   NSClosableWindowMask)
-                         backing: NSBackingStoreBuffered
-
-# Fix for Shift key for IME users
-diff --git a/src/nsterm.m b/src/nsterm.m
-index 30b73c2..f0c154e 100644
---- a/src/nsterm.m
-+++ b/src/nsterm.m
-@@ -4489,6 +4489,7 @@ ns_term_shutdown (int sig)
- 
-       /* if it was a function key or had modifiers, pass it directly to emacs */
-       if (fnKeysym || (emacs_event->modifiers
-+                       && (emacs_event->modifiers != shift_modifier)
-                        && [[theEvent charactersIgnoringModifiers] length] > 0))
- /*[[theEvent characters] length] */
-         {

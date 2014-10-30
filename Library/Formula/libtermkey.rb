@@ -1,17 +1,23 @@
-require 'formula'
+require "formula"
 
 class Libtermkey < Formula
-  url 'http://www.leonerd.org.uk/code/libtermkey/libtermkey-0.8.tar.gz'
-  homepage 'http://www.leonerd.org.uk/code/libtermkey/'
-  md5 '802616eec246e983fc31462afa9d92cf'
+  homepage "http://www.leonerd.org.uk/code/libtermkey/"
+  url "http://www.leonerd.org.uk/code/libtermkey/libtermkey-0.17.tar.gz"
+  sha1 "2f9f0724cabd81f0ae3ba7b2837ee15dd40130f9"
+
+  bottle do
+    cellar :any
+    revision 1
+    sha1 "0335d158aa03bd7ad2d75b9b902f8ae4ffc2c864" => :yosemite
+    sha1 "29ba1ee30a2462b3eff036c2cdd32fbdcf349571" => :mavericks
+    sha1 "c77ce1bf195352319b3f09da116a67922d4b4265" => :mountain_lion
+  end
+
+  depends_on "pkg-config" => :build
+  depends_on "libtool" => :build
 
   def install
-    inreplace 'Makefile' do |s|
-      s.change_make_var! "PREFIX", prefix
-      # Check if this is needed for newer versions
-      s.change_make_var! "LIBTOOL", "glibtool"
-    end
-    system "make"
-    system "make install"
+    system "make", "PREFIX=#{prefix}"
+    system "make", "install", "PREFIX=#{prefix}"
   end
 end

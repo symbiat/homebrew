@@ -1,29 +1,44 @@
-require 'formula'
+require "formula"
 
 class ObjectiveCaml < Formula
-  url 'http://caml.inria.fr/pub/distrib/ocaml-3.12/ocaml-3.12.1.tar.bz2'
-  homepage 'http://caml.inria.fr/ocaml/index.en.html'
-  md5 '227a3daaedb150bf5037a3db01f5bf42'
+  homepage "http://ocaml.org"
+  url "http://caml.inria.fr/pub/distrib/ocaml-4.02/ocaml-4.02.1.tar.gz"
+  sha1 "6af8c67f2badece81d8e1d1ce70568a16e42313e"
+
+  head "http://caml.inria.fr/svn/ocaml/trunk", :using => :svn
+  revision 1
+
+  option "without-x11", "Install without the Graphics module"
+  depends_on :x11 => :optional
 
   bottle do
-    url 'https://downloads.sf.net/project/machomebrew/Bottles/objective-caml-3.12.1-bottle.tar.gz'
-    sha1 'f32709be6cba5639a3f7185835963d630d6f8b59'
+    sha1 "9a734836f27712fbd3a454152100fcd696932bf8" => :yosemite
+    sha1 "4d80628d7bea7d38888dd3ceb4fb1393613ccea1" => :mavericks
+    sha1 "625826bbc9c7fc5b082abbe59b099f17032a3a00" => :mountain_lion
   end
 
-  # Don't strip symbols, so dynamic linking doesn't break.
-  skip_clean :all
-
   def install
-    system "./configure", "--prefix", HOMEBREW_PREFIX, "--mandir", man
-    ENV.deparallelize # Builds are not parallel-safe, esp. with many cores
-    system "make world"
-    system "make opt"
-    system "make opt.opt"
-    system "make PREFIX=#{prefix} install"
-    (lib+'ocaml/compiler-libs').install 'typing', 'parsing', 'utils'
+    args = %W[
+      --prefix #{HOMEBREW_PREFIX}
+      --mandir #{man}
+      -cc #{ENV.cc}
+      -with-debug-runtime
+    ]
+    args << "-aspp" << "#{ENV.cc} -c"
+    args << "-no-graph" if build.without? "x11"
 
+    ENV.deparallelize # Builds are not parallel-safe, esp. with many cores
+    system "./configure", *args
+    system "make", "world"
+    system "make", "opt"
+    system "make", "opt.opt"
+    system "make", "PREFIX=#{prefix}", "install"
+    (lib/"ocaml/site-lib").mkpath
+  end
+
+  def post_install
     # site-lib in the Cellar will be a symlink to the HOMEBREW_PREFIX location,
     # which is mkpath'd by Keg#link when something installs into it
-    ln_s HOMEBREW_PREFIX+"lib/ocaml/site-lib", lib+"ocaml/site-lib"
+    (lib/"ocaml").install_symlink HOMEBREW_PREFIX/"lib/ocaml/site-lib"
   end
 end

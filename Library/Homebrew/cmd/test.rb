@@ -1,26 +1,69 @@
-module Homebrew extend self
+require "extend/ENV"
+require "timeout"
+require "debrew"
+
+module Homebrew
+  TEST_TIMEOUT_SECONDS = 5*60
+
+  if defined?(Gem)
+    begin
+      gem "minitest", "< 5.0.0"
+    rescue Gem::LoadError
+      require "test/unit/assertions"
+    else
+      require "minitest/unit"
+      require "test/unit/assertions"
+    end
+  else
+    require "test/unit/assertions"
+  end
+
+  if defined?(MiniTest::Assertion)
+    FailedAssertion = MiniTest::Assertion
+  elsif defined?(Minitest::Assertion)
+    FailedAssertion = Minitest::Assertion
+  else
+    FailedAssertion = Test::Unit::AssertionFailedError
+  end
+
+  require "formula_assertions"
+
   def test
-    raise KegUnspecifiedError if ARGV.named.empty?
+    raise FormulaUnspecifiedError if ARGV.named.empty?
+
+    ENV.extend(Stdenv)
+    ENV.setup_build_environment
 
     ARGV.formulae.each do |f|
       # Cannot test uninstalled formulae
       unless f.installed?
-        puts "#{f.name} not installed"
+        ofail "Testing requires the latest version of #{f.name}"
         next
       end
 
       # Cannot test formulae without a test method
-      unless f.respond_to? :test
-        puts "#{f.name} defines no test"
+      unless f.test_defined?
+        ofail "#{f.name} defines no test"
         next
       end
 
       puts "Testing #{f.name}"
+
+      f.extend(Test::Unit::Assertions)
+      f.extend(Homebrew::Assertions)
+      f.extend(Debrew::Formula) if ARGV.debug?
+
       begin
         # tests can also return false to indicate failure
-        puts "#{f.name}: failed" if f.test == false
-      rescue
-        puts "#{f.name}: failed"
+        Timeout::timeout TEST_TIMEOUT_SECONDS do
+          raise if f.run_test == false
+        end
+      rescue FailedAssertion => e
+        ofail "#{f.name}: failed"
+        puts e.message
+      rescue Exception => e
+        ofail "#{f.name}: failed"
+        puts e, e.backtrace
       end
     end
   end

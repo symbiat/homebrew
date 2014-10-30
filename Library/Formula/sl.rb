@@ -1,15 +1,18 @@
-require 'formula'
+require "formula"
 
 class Sl < Formula
-  homepage 'http://packages.debian.org/source/stable/sl'
-  url 'http://mirrors.kernel.org/debian/pool/main/s/sl/sl_3.03.orig.tar.gz'
-  mirror 'http://ftp.us.debian.org/debian/pool/main/s/sl/sl_3.03.orig.tar.gz'
-  md5 'd0d997b964bb3478f7f4968eee13c698'
+  homepage "https://github.com/mtoyoda/sl"
+  url "https://github.com/mtoyoda/sl/archive/5.02.tar.gz"
+  sha256 "1e5996757f879c81f202a18ad8e982195cf51c41727d3fea4af01fdcbbb5563a"
+
+  head "https://github.com/mtoyoda/sl.git"
+
+  fails_with :clang do
+    build 318
+  end
 
   def install
-    ENV.llvm if MacOS.clang_version.to_f <= 3.1
-
-    system "make", "CC=#{ENV.cc}", "CFLAGS=#{ENV.cflags}"
+    system "make -e"
     bin.install "sl"
     man1.install "sl.1"
   end

@@ -1,14 +1,19 @@
-require 'formula'
+require "formula"
 
 class Libewf < Formula
-  url 'http://downloads.sourceforge.net/project/libewf/libewf/libewf-20100226/libewf-20100226.tar.gz'
-  homepage 'http://sourceforge.net/projects/libewf/'
-  md5 'a697d629bb74df1fa68f22658634fdb9'
+  homepage "http://code.google.com/p/libewf/"
+  url "https://googledrive.com/host/0B3fBvzttpiiSMTdoaVExWWNsRjg/libewf-20140608.tar.gz"
+  sha1 "c17384a3d2c1d63bd5b1aaa2aead6ee3c82a2368"
+
+  bottle do
+    cellar :any
+    revision 1
+    sha1 "402eaa3c798f989cdaaea037aa4042813f27a19c" => :yosemite
+    sha1 "efc08c4c055d93a533e833fa99339d29bd12aee2" => :mavericks
+  end
 
   def install
-    ENV['LIBTOOLIZE'] = "/usr/bin/glibtoolize"
-    system "./configure", "--disable-dependency-tracking",
-                          "--prefix=#{prefix}"
+    system "./configure", "--disable-dependency-tracking", "--prefix=#{prefix}"
     system "make install"
   end
 end

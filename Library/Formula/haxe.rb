@@ -1,20 +1,43 @@
 require 'formula'
 
 class Haxe < Formula
-  url 'http://haxe.org/file/haxe-2.08-osx.tar.gz'
-  version '2.08'
-  homepage 'http://haxe.org/'
-  sha1 'e8758ea9155bf27606348d02240c2af1fecee67b'
+  homepage 'http://haxe.org'
+  url 'https://github.com/HaxeFoundation/haxe.git', :tag => '3.1.3'
+
+  head 'https://github.com/HaxeFoundation/haxe.git', :branch => 'development'
+
+  bottle do
+    cellar :any
+    sha1 "83fe01c0ca2997328e88ef7763181ff40cc5082a" => :mavericks
+    sha1 "46c5911f3505c7e102c71dde16ed4ab2bdcc4cbc" => :mountain_lion
+    sha1 "408dbaf0110cb38ee52900bd4910c56913681bab" => :lion
+  end
+
+  depends_on 'neko' => :recommended
+  depends_on 'objective-caml' => :build
+  depends_on 'camlp4' => :build
 
   def install
-    bin.install %w(haxe haxedoc haxelib)
-    (share+"haxe").install "std"
+    # Build requires targets to be built in specific order
+    ENV.deparallelize
+    system "make"
+    bin.mkpath
+    system "make", "install", "INSTALL_BIN_DIR=#{bin}", "INSTALL_LIB_DIR=#{lib}/haxe"
+
+    # Replace the absolute symlink by a relative one,
+    # such that binary package created by homebrew will work in non-/usr/local locations.
+    rm bin/"haxe"
+    bin.install_symlink lib/"haxe/haxe"
+  end
+
+  test do
+    ENV["HAXE_STD_PATH"] = "#{HOMEBREW_PREFIX}/lib/haxe/std"
+    system "#{bin}/haxe", "-v", "Std"
   end
 
   def caveats; <<-EOS.undent
-    HaXe needs to know how to find its standard library so add this to your
-    shell profile:
-      export HAXE_LIBRARY_PATH="$(brew --prefix)/share/haxe/std"
+    Add the following line to your .bashrc or equivalent:
+      export HAXE_STD_PATH="#{HOMEBREW_PREFIX}/lib/haxe/std"
     EOS
   end
 end

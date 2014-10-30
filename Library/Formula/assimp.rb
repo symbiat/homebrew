@@ -2,19 +2,17 @@ require 'formula'
 
 class Assimp < Formula
   homepage 'http://assimp.sourceforge.net/'
-  url 'http://downloads.sourceforge.net/project/assimp/assimp-2.0/assimp--2.0.863-sdk.zip'
-  version '2.0.863'
-  md5 '9f41662501bd9d9533c4cf03b7c25d5b'
+  url "https://downloads.sourceforge.net/project/assimp/assimp-3.1/assimp-3.1.1_no_test_models.zip"
+  sha1 "d7bc1d12b01d5c7908d85ec9ff6b2d972e565e2d"
+  version "3.1.1"
+
+  head 'https://github.com/assimp/assimp.git'
 
   depends_on 'cmake' => :build
   depends_on 'boost'
 
   def install
-    system "cmake #{std_cmake_parameters} ."
+    system "cmake", ".", *std_cmake_args
     system "make install"
-  end
-
-  def test
-    system "#{bin}/assimp version"
   end
 end

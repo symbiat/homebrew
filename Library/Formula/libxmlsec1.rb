@@ -1,26 +1,38 @@
-require 'formula'
+require "formula"
 
 class Libxmlsec1 < Formula
-  url 'http://www.aleksey.com/xmlsec/download/xmlsec1-1.2.18.tar.gz'
-  homepage 'http://www.aleksey.com/xmlsec/'
-  md5 '8694b4609aab647186607f79e1da7f1a'
+  homepage "https://www.aleksey.com/xmlsec/"
+  url "https://www.aleksey.com/xmlsec/download/xmlsec1-1.2.20.tar.gz"
+  sha1 "40117ab0f788e43deef6eaf028c88f6abc3a30d0"
 
-  depends_on 'pkg-config' => :build
-  depends_on 'libxml2' #version on 10.6/10.7 is too old
-  depends_on 'gnutls' => :optional
-
-  def patches
-    DATA
+  bottle do
+    sha1 "7cfecf66f3608695321bc195b35957f2dddeb354" => :yosemite
+    sha1 "ff35feb04a9f18af8cf96aacc340e25e60adb542" => :mavericks
+    sha1 "9b4df5db57f11d86d63fc7dcaa51939d9b874c23" => :mountain_lion
   end
 
-  def install
-    libxml2 = Formula.factory('libxml2')
+  depends_on "pkg-config" => :build
+  depends_on "libxml2" if MacOS.version <= :lion
+  # Yes, it wants both ssl/tls variations.
+  depends_on "openssl" => :recommended
+  depends_on "gnutls" => :recommended
+  depends_on "libgcrypt" if build.with? "gnutls"
 
-    system "./configure", "--disable-dependency-tracking",
-                          "--prefix=#{prefix}",
-                          "--with-libxml=#{libxml2.prefix}",
-                          "--disable-apps-crypto-dl"
-    system "make install"
+  # Add HOMEBREW_PREFIX/lib to dl load path
+  patch :DATA
+
+  def install
+    args = ["--disable-dependency-tracking",
+            "--prefix=#{prefix}",
+            "--disable-crypto-dl",
+            "--disable-apps-crypto-dl"
+    ]
+
+    args << "--with-openssl=#{Formula["openssl"].opt_prefix}" if build.with? "openssl"
+    args << "--with-libxml=#{Formula["libxml2"].opt_prefix}" if build.with? "libxml2"
+
+    system "./configure", *args
+    system "make", "install"
   end
 end
 
@@ -31,9 +43,9 @@ index 6e8a56a..0e7f06b 100644
 +++ b/src/dl.c
 @@ -141,6 +141,7 @@ xmlSecCryptoDLLibraryCreate(const xmlChar* name) {
      }
- 
+
  #ifdef XMLSEC_DL_LIBLTDL
-+    lt_dlsearchpath("HOMEBREW_PREFIX/lib");
++    lt_dlsetsearchpath("HOMEBREW_PREFIX/lib");
      lib->handle = lt_dlopenext((char*)lib->filename);
      if(lib->handle == NULL) {
          xmlSecError(XMLSEC_ERRORS_HERE,

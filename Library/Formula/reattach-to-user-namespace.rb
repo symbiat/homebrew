@@ -1,23 +1,20 @@
 require 'formula'
 
 class ReattachToUserNamespace < Formula
-  head 'https://github.com/ChrisJohnsen/tmux-MacOSX-pasteboard.git'
   homepage 'https://github.com/ChrisJohnsen/tmux-MacOSX-pasteboard'
-  url 'https://github.com/ChrisJohnsen/tmux-MacOSX-pasteboard.git', :tag => 'dadea0aa48259c704d0b412b9588de2f5623e323'
-  version 'dadea0'
+  url 'https://github.com/ChrisJohnsen/tmux-MacOSX-pasteboard/archive/v2.3.tar.gz'
+  sha1 '830d329992b294c2673ed240ee3c7786e4e06308'
 
-  def options
-    [
-      ['--wrap-pbcopy-and-pbpaste', 'Include wrappers for pbcopy/pbpaste that shim in this fix'],
-      ['--wrap-launchctl', 'Include wrapper for launchctl with this fix']
-    ]
-  end
+  head 'https://github.com/ChrisJohnsen/tmux-MacOSX-pasteboard.git'
+
+  option 'wrap-pbcopy-and-pbpaste', 'Include wrappers for pbcopy/pbpaste that shim in this fix'
+  option 'wrap-launchctl', 'Include wrapper for launchctl with this fix'
 
   def install
     system "make"
     bin.install "reattach-to-user-namespace"
-    wrap_pbpasteboard_commands if ARGV.include? '--wrap-pbcopy-and-pbpaste'
-    wrap_launchctl if ARGV.include? '--wrap-launchctl'
+    wrap_pbpasteboard_commands if build.include? 'wrap-pbcopy-and-pbpaste'
+    wrap_launchctl if build.include? 'wrap-launchctl'
   end
 
   def wrap_pbpasteboard_commands

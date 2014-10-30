@@ -2,8 +2,8 @@ require 'formula'
 
 class Clay < Formula
   homepage 'http://claylabs.com/clay/'
-  url 'https://github.com/jckarter/clay/tarball/v0.1.0'
-  md5 'fa34b4ecc0ab13047f802b9aac6d850b'
+  url 'https://github.com/jckarter/clay/archive/v0.1.2.tar.gz'
+  sha1 'cd557a5ccaca17fd8ec83651f8df3e5405c4f855'
 
   head 'https://github.com/jckarter/clay.git'
 
@@ -11,11 +11,11 @@ class Clay < Formula
   depends_on 'llvm'  => :build
 
   def install
-    system "cmake #{std_cmake_parameters} ."
+    system "cmake", ".", *std_cmake_args
     system "make install"
   end
 
-  def test
-    system "#{bin}/clay -e 'println(\"Hello, Clay!\");'"
+  test do
+    system "#{bin}/clay", "-e", "println(\"Hello, Clay!\");"
   end
 end

@@ -1,68 +1,89 @@
-require 'formula'
+require "formula"
 
 class SwiProlog < Formula
-  homepage 'http://www.swi-prolog.org/'
-  url 'http://www.swi-prolog.org/download/stable/src/pl-6.0.0.tar.gz'
-  sha256 '85591936c8b6af610b1a9960924e6e4eaf5abccf253749a15355ad79a9e80de9'
-  head 'git://www.swi-prolog.org/home/pl/git/pl.git'
+  homepage "http://www.swi-prolog.org/"
+  url "http://www.swi-prolog.org/download/stable/src/pl-6.6.6.tar.gz"
+  sha1 "38cc6772a48fd412f50fc06e24e6e4673eb71d3b"
+  revision 1
 
-  depends_on 'pkg-config' => :build
-  depends_on 'readline'
-  depends_on 'gmp'
-  depends_on 'jpeg'
-  depends_on 'mcrypt'
-  depends_on 'gawk'
-
-  # 10.5 versions of these are too old
-  if MacOS.leopard?
-    depends_on 'fontconfig'
-    depends_on 'expat'
+  bottle do
+    sha1 "639b6093ff09bb6b066ff86705de2ddc78c37213" => :yosemite
+    sha1 "76f0f355cc1e16442ed3f474654924890da457dd" => :mavericks
+    sha1 "6917eab60b4e607311f0ee777dd70e31e624e7c1" => :mountain_lion
   end
 
-  fails_with_llvm "Exported procedure chr_translate:chr_translate_line_info/3 is not defined",
-    :build => 2335
+  devel do
+    url "http://www.swi-prolog.org/download/devel/src/pl-7.1.25.tar.gz"
+    sha1 "c7912d9905de961426ffae3545f8d4a16f68c386"
+  end
 
-  def options
-    [['--lite', "Don't install any packages; overrides --with-jpl"],
-     ['--without-jpl', "Include JPL, the Java-Prolog Bridge"]]
+  head do
+    url "https://github.com/SWI-Prolog/swipl-devel.git"
+
+    depends_on "autoconf" => :build
+  end
+
+  option "lite", "Disable all packages"
+  option "with-jpl", "Enable JPL (Java Prolog Bridge)"
+  option "with-xpce", "Enable XPCE (Prolog Native GUI Library)"
+
+  depends_on "pkg-config" => :build
+  depends_on "readline"
+  depends_on "gmp"
+  depends_on "openssl"
+  depends_on "libarchive" => :optional
+
+  if build.with? "xpce"
+    depends_on :x11
+    depends_on "jpeg"
+  end
+
+  # 10.5 versions of these are too old
+  if MacOS.version <= :leopard
+    depends_on "fontconfig"
+    depends_on "expat"
+  end
+
+  fails_with :llvm do
+    build 2335
+    cause "Exported procedure chr_translate:chr_translate_line_info/3 is not defined"
   end
 
   def install
-    args = ["--prefix=#{prefix}", "--mandir=#{man}"]
-    ENV.append 'DISABLE_PKGS', "jpl" if ARGV.include? "--without-jpl"
-
-    if x11_installed?
-      # SWI-Prolog requires X11 for XPCE
-      ENV.x11
+    # The archive package hard-codes a check for MacPort libarchive
+    # Replace this with a check for Homebrew's libarchive, or nowhere
+    if build.with? "libarchive"
+      inreplace "packages/archive/configure.in", "/opt/local",
+                                                 Formula["libarchive"].opt_prefix
     else
-      opoo  "It appears that X11 is not installed. The XPCE packages will not be built."
-      ENV.append 'DISABLE_PKGS', "xpce"
+      ENV.append "DISABLE_PKGS", "archive"
     end
+
+    args = ["--prefix=#{libexec}", "--mandir=#{man}"]
+    ENV.append "DISABLE_PKGS", "jpl" if build.without? "jpl"
+    ENV.append "DISABLE_PKGS", "xpce" if build.without? "xpce"
 
     # SWI-Prolog's Makefiles don't add CPPFLAGS to the compile command, but do
     # include CIFLAGS. Setting it here. Also, they clobber CFLAGS, so including
     # the Homebrew-generated CFLAGS into COFLAGS here.
-    ENV['CIFLAGS'] = ENV['CPPFLAGS']
-    ENV['COFLAGS'] = ENV['CFLAGS']
+    ENV["CIFLAGS"] = ENV.cppflags
+    ENV["COFLAGS"] = ENV.cflags
 
     # Build the packages unless --lite option specified
-    args << "--with-world" unless ARGV.include? "--lite"
+    args << "--with-world" unless build.include? "lite"
 
     # './prepare' prompts the user to build documentation
     # (which requires other modules). '3' is the option
     # to ignore documentation.
-    system "echo '3' | ./prepare" if ARGV.build_head?
+    system "echo '3' | ./prepare" if build.head?
     system "./configure", *args
     system "make"
     system "make install"
+
+    bin.write_exec_script Dir["#{libexec}/bin/*"]
   end
 
-  def caveats; <<-EOS.undent
-    By default, this formula installs the JPL bridge.
-    On 10.6, this requires the "Java Developer Update" from Apple:
-     * https://github.com/mxcl/homebrew/wiki/new-issue
-
-    Use the "--without-jpl" switch to skip installing this component.
-    EOS
+  test do
+    system "#{bin}/swipl", "--version"
   end
 end

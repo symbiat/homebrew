@@ -1,9 +1,9 @@
 require 'formula'
 
 class Mpc < Formula
-  url 'http://downloads.sourceforge.net/project/musicpd/mpc/0.21/mpc-0.21.tar.bz2'
-  homepage 'http://mpd.wikia.com/wiki/Client:Mpc'
-  md5 'd8f88aad5fa7ed4c6e7005c5ec1ba7c5'
+  homepage 'http://www.musicpd.org/clients/mpc/'
+  url 'http://www.musicpd.org/download/mpc/0/mpc-0.26.tar.gz'
+  sha1 '56f434a0dae82d88a4bc24e50be7870ca20676a1'
 
   depends_on 'pkg-config' => :build
   depends_on 'libmpdclient'

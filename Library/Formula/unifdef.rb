@@ -1,18 +1,19 @@
-require 'formula'
+require "formula"
 
 class Unifdef < Formula
-  url 'http://dotat.at/prog/unifdef/unifdef-2.6.tar.gz'
-  homepage 'http://dotat.at/prog/unifdef/'
-  md5 '18b832baea2c7b6b00bd7d4f3db38f62'
+  homepage "http://dotat.at/prog/unifdef/"
+  head "https://github.com/fanf2/unifdef.git"
+  url "http://dotat.at/prog/unifdef/unifdef-2.10.tar.gz"
+  sha1 "8bc4e4feb914ff4aa164b23230b51d3f526559ac"
 
   keg_only :provided_by_osx,
     "The unifdef provided by Xcode cannot compile gevent."
 
   def install
-    system "make prefix=#{prefix} install"
+    system "make", "prefix=#{prefix}", "install"
   end
 
-  def test
+  test do
     system "echo '' | #{bin}/unifdef"
   end
 end

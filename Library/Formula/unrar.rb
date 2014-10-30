@@ -1,15 +1,26 @@
 require 'formula'
 
 class Unrar < Formula
-  url 'http://www.rarlab.com/rar/unrarsrc-4.1.4.tar.gz'
-  sha1 'ae4b1e2c99e96527c4a97f980daa547499f42a0f'
   homepage 'http://www.rarlab.com'
+  url 'http://www.rarlab.com/rar/unrarsrc-5.2.1.tar.gz'
+  sha1 'e3e60d89d71132fd77d071261e49d1fc4f1aed80'
 
   def install
-    system "make --makefile makefile.unix"
+    system "make"
     bin.install 'unrar'
+  end
 
-    mv 'license.txt', 'COPYING'
-    mv 'readme.txt', 'README'
+  test do
+    contentpath = "directory/file.txt"
+    rarpath = testpath/"archive.rar"
+    data =  'UmFyIRoHAM+QcwAADQAAAAAAAACaCHQggDIACQAAAAkAAAADtPej1LZwZE' +
+            'QUMBIApIEAAGRpcmVjdG9yeVxmaWxlLnR4dEhvbWVicmV3CsQ9ewBABwA='
+
+    rarpath.write data.unpack('m').first
+    assert_equal contentpath, `#{bin}/unrar lb #{rarpath}`.strip
+    assert_equal 0, $?.exitstatus
+
+    system "#{bin}/unrar", "x", rarpath, testpath
+    assert_equal "Homebrew\n", (testpath/contentpath).read
   end
 end

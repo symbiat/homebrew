@@ -1,32 +1,42 @@
 require 'keg'
+require 'formula'
 
-module Homebrew extend self
+module Homebrew
   def uninstall
     raise KegUnspecifiedError if ARGV.named.empty?
 
-    unless ARGV.force?
+    if not ARGV.force?
       ARGV.kegs.each do |keg|
-        puts "Uninstalling #{keg}..."
-        keg.unlink
-        keg.uninstall
+        keg.lock do
+          puts "Uninstalling #{keg}..."
+          keg.unlink
+          keg.uninstall
+          rm_pin keg.name
+        end
       end
     else
-      ARGV.formulae.each do |f|
-        if f.rack.directory?
-          puts "Uninstalling #{f}..."
-          f.rack.children.each do |keg|
-            if keg.directory?
-              keg = Keg.new(keg)
-              keg.unlink
-              keg.rmtree
-            end
+      ARGV.named.each do |name|
+        name = Formulary.canonical_name(name)
+        rack = HOMEBREW_CELLAR/name
+
+        if rack.directory?
+          puts "Uninstalling #{name}..."
+          rack.subdirs.each do |d|
+            keg = Keg.new(d)
+            keg.unlink
+            keg.uninstall
           end
-          f.rack.rmtree
         end
+
+        rm_pin name
       end
     end
   rescue MultipleVersionsInstalledError => e
-    onoe e
+    ofail e
     puts "Use `brew remove --force #{e.name}` to remove all versions."
+  end
+
+  def rm_pin name
+    Formulary.factory(name).unpin rescue nil
   end
 end

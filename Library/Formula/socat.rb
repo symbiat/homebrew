@@ -1,18 +1,26 @@
 require 'formula'
 
 class Socat < Formula
-  url 'http://www.dest-unreach.org/socat/download/socat-1.7.1.3.tar.bz2'
   homepage 'http://www.dest-unreach.org/socat/'
-  md5 '2081987fb0cb0290b8105574058cb329'
+  url 'http://www.dest-unreach.org/socat/download/socat-1.7.2.4.tar.bz2'
+  mirror 'http://ftp.de.debian.org/debian/pool/main/s/socat/socat_1.7.2.4.orig.tar.bz2'
+  sha1 '55650f3c4c1a5cdc323b2e6eece416b6303d39b5'
+  revision 1
+
+  bottle do
+    cellar :any
+    revision 1
+    sha1 "5ffec90f5f7c1c515cf131364981ff7737b9551a" => :mavericks
+    sha1 "029fb4d33ebd3f5afae75b5da5cb6de72c19a2c3" => :mountain_lion
+    sha1 "06edff14216361eebb2a348b0a51954a12dc3f60" => :lion
+  end
 
   depends_on 'readline'
+  depends_on 'openssl'
 
   def install
-    # Lion requires this flag in some cases
-    ENV.append "CFLAGS", "-D__APPLE_USE_RFC_3542" if 10.7 <= MACOS_VERSION
-
-    ENV.enable_warnings # -wall causes build to fail
-    system "./configure", "--disable-debug", "--prefix=#{prefix}", "--mandir=#{man}"
+    ENV.enable_warnings # -w causes build to fail
+    system "./configure", "--prefix=#{prefix}", "--mandir=#{man}"
     system "make install"
   end
 end

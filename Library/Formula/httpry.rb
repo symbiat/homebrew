@@ -1,13 +1,15 @@
-require 'formula'
+require "formula"
 
 class Httpry < Formula
-  url 'http://dumpsterventures.com/jason/httpry/httpry-0.1.5.tar.gz'
-  homepage 'http://dumpsterventures.com/jason/httpry/'
-  md5 '7fbba29eaeec1fd6b25e6fa3a12be25d'
+  homepage "http://dumpsterventures.com/jason/httpry/"
+  url "http://dumpsterventures.com/jason/httpry/httpry-0.1.8.tar.gz"
+  sha1 "163dcd1ab8cb2e8cef3cda2d7f0dea1b04deb338"
+
+  depends_on :bsdmake
 
   def install
-    system "/usr/bin/bsdmake"
-    bin.install 'httpry'
-    man1.install 'httpry.1'
+    system "bsdmake"
+    bin.install "httpry"
+    man1.install "httpry.1"
   end
 end

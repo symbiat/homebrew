@@ -2,26 +2,24 @@ require 'formula'
 
 class Vrpn < Formula
   homepage 'http://vrpn.org'
-  url 'ftp://ftp.cs.unc.edu/pub/packages/GRIP/vrpn/vrpn_07_29.zip'
-  md5 '422f13fc9cbb62d36c96f3cc3b06cec9'
+  url 'http://www.cs.unc.edu/Research/vrpn/downloads/vrpn_07_31.zip'
+  sha1 'a78dd36cd301a7def2d54576cfa63604a8729ace'
 
   head 'git://git.cs.unc.edu/vrpn.git'
 
-  depends_on 'libusb' # for HID support
-  depends_on 'cmake' => :build
-  depends_on 'doxygen' if ARGV.include? '--docs'
+  option 'clients', 'Build client apps and tests'
+  option 'docs', 'Build doxygen-based API documentation'
 
-  def options
-    [
-      ['--clients', 'Build client apps and tests.'],
-      ['--docs', 'Build doxygen-based API documentation']
-    ]
-  end
+  depends_on 'cmake' => :build
+  depends_on 'libusb' # for HID support
+  depends_on 'doxygen' if build.include? 'docs'
 
   def install
-    args = std_cmake_parameters.split
+    ENV.libstdcxx
 
-    if ARGV.include? '--clients'
+    args = std_cmake_args
+
+    if build.include? 'clients'
       args << "-DVRPN_BUILD_CLIENTS:BOOL=ON"
     else
       args << "-DVRPN_BUILD_CLIENTS:BOOL=OFF"
@@ -30,7 +28,7 @@ class Vrpn < Formula
 
     mkdir "build" do
       system "cmake", *args
-      system "make doc" if ARGV.include? '--docs'
+      system "make doc" if build.include? 'docs'
       system "make install"
     end
   end
